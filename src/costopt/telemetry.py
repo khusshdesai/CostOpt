@@ -21,11 +21,11 @@ class SQLiteTelemetryLogger:
             self._init_db()
             self._is_initialized = True
         except Exception as e:
-            logger.error(f"Telemetry DB initialization failed: {e}. Worker thread will not be started.")
+            logger.error(f"Telemetry DB initialization failed: {e}.")
+            raise e
 
         self._worker_thread = threading.Thread(target=self._worker, daemon=True)
-        if self._is_initialized:
-            self._worker_thread.start()
+        self._worker_thread.start()
 
     def _init_db(self):
         """Creates the telemetry SQLite database schema if not present."""
@@ -70,6 +70,10 @@ class SQLiteTelemetryLogger:
 
     def log(self, record: Dict[str, Any]) -> None:
         """Queues a telemetry record for asynchronous background write."""
+        if not self._is_initialized:
+            logger.warning("Telemetry logger is not initialized. Dropping log record.")
+            return
+
         # Ensure timestamp is set
         if "timestamp" not in record:
             record["timestamp"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
