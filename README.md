@@ -31,8 +31,8 @@
 ## 📌 Key Capabilities
 
 - **Zero-Churn 1-Line SDK Interception**: Drop-in wrapper patches standard completion clients (`client = CostOpt(OpenAI())`) with zero modifications to existing calling code.
-- **Up to 97% Cost Reduction**: Automatically detects prompt intent complexity and reroutes queries from expensive cloud models (`gpt-4o`) to lightweight models (`gpt-4o-mini` or local `llama3`).
-- **Semantic Vector Cosine Cache**: High-speed TF-IDF character n-gram cosine similarity cache returns **0ms latency, $0.00 cost** hits on prompt variations.
+- **Automated Cost Optimization**: Intelligent intent detection automatically routes lightweight queries (like sentiment or text formatting) from expensive models (`gpt-4o`) to low-cost models (`gpt-4o-mini` or local `llama3`), preserving response quality while cutting spend.
+- **Semantic & Token Similarity Cache**: High-speed token & semantic similarity cache returns **0ms latency, $0.00 cost** hits on prompt variations.
 - **Local & Offline Model Support**: Seamlessly route to local **Ollama** models (`llama3`, `mistral`, `deepseek-r1`, `qwen2.5`) for 100% free offline execution.
 - **100% Private Local Telemetry**: Logs financial metrics, latency distributions, and MD5 trace hashes to a local SQLite database—zero data shared with third-party servers.
 
