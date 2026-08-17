@@ -52,6 +52,33 @@ class SQLiteCache:
             return 0.0
         return len(words1 & words2) / len(words1 | words2)
 
+    def _tfidf_similarity(self, text1: str, text2: str) -> float:
+        """Calculates fast TF-IDF word and character n-gram Cosine Vector Similarity."""
+        import math, string
+        def extract_features(t: str) -> Dict[str, int]:
+            t_clean = t.lower().translate(str.maketrans("", "", string.punctuation))
+            words = t_clean.split()
+            counts: Dict[str, int] = {}
+            for w in words:
+                counts[w] = counts.get(w, 0) + 1
+            for i in range(len(t_clean) - 2):
+                gram = t_clean[i:i+3]
+                counts[gram] = counts.get(gram, 0) + 1
+            return counts
+
+        v1 = extract_features(text1)
+        v2 = extract_features(text2)
+        all_features = set(v1.keys()) | set(v2.keys())
+        if not all_features:
+            return 0.0
+            
+        dot_product = sum(v1.get(f, 0) * v2.get(f, 0) for f in all_features)
+        mag1 = math.sqrt(sum(val ** 2 for val in v1.values()))
+        mag2 = math.sqrt(sum(val ** 2 for val in v2.values()))
+        if mag1 == 0 or mag2 == 0:
+            return 0.0
+        return dot_product / (mag1 * mag2)
+
 
     def get(self, prompt_text: str, model: str) -> Optional[Dict[str, Any]]:
         """
@@ -97,7 +124,10 @@ class SQLiteCache:
                         if r_expires <= now:
                             continue
                         
-                        similarity = self._jaccard_similarity(prompt_text, r_text)
+                        jaccard = self._jaccard_similarity(prompt_text, r_text)
+                        tfidf = self._tfidf_similarity(prompt_text, r_text)
+                        similarity = max(jaccard, tfidf)
+
                         if similarity >= self.similarity_threshold and similarity > best_similarity:
                             best_similarity = similarity
                             best_match = (r_json, r_hash)

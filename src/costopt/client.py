@@ -16,14 +16,14 @@ class CostOptCompletions:
         self._original = original_completions
         self._wrapper = wrapper
 
-    def create(self, *args, **kwargs) -> ChatCompletion:
+    def create(self, *args, **kwargs) -> Any:
         start_time = time.time()
         
         # 1. Extract request parameters
         model_requested = kwargs.get("model", "")
         messages = kwargs.get("messages", [])
         
-        # Extract environment and application metadata from kwargs (or fall back to configuration defaults)
+        # Extract environment and application metadata from kwargs
         environment = kwargs.pop("environment", self._wrapper.environment)
         application = kwargs.pop("application", self._wrapper.application)
         region = kwargs.pop("region", self._wrapper.region)
@@ -40,6 +40,10 @@ class CostOptCompletions:
         prompt_text = "\n".join(prompt_parts)
         prompt_hash = hashlib_helper(prompt_text)
 
+        # Handle streaming interception if stream=True
+        if kwargs.get("stream"):
+            return self._handle_stream(start_time, prompt_text, prompt_hash, model_requested, environment, application, region, args, kwargs)
+
         # 2. Check Cache
         cached_data = self._wrapper.cache.get(prompt_text, model_requested)
         if cached_data:
@@ -49,9 +53,6 @@ class CostOptCompletions:
                 # Reconstruct OpenAI Pydantic model
                 chat_completion = ChatCompletion.model_validate(cached_data)
                 
-                # Calculate cost savings
-                # For cache hit, cost_original is what they would pay for model_requested with full input tokens.
-                # cost_actual is 0.0 or the cached input rate.
                 input_tokens = chat_completion.usage.prompt_tokens if chat_completion.usage else 0
                 output_tokens = chat_completion.usage.completion_tokens if chat_completion.usage else 0
                 
@@ -89,7 +90,7 @@ class CostOptCompletions:
         model_used = self._wrapper.router.match_route(prompt_text, model_requested)
         kwargs["model"] = model_used
 
-        # 4. API Call execution with fallback retry logic
+        # 4. API Call execution with multi-provider fallback retry logic
         response = None
         status_code = 200
         error_type = None
@@ -103,9 +104,15 @@ class CostOptCompletions:
             last_exception = e
             # Try to run model fallbacks
             fallbacks = self._wrapper.router.get_fallbacks(model_used)
-            for fallback_model in fallbacks:
+            for fallback_entry in fallbacks:
                 retry_count += 1
-                logger.warning(f"CostOpt: Call to {model_used} failed. Retrying fallback {fallback_model} (attempt {retry_count})...")
+                # Support multi-provider syntax e.g. "anthropic/claude-3-5-sonnet"
+                provider_target = self._wrapper.provider
+                fallback_model = fallback_entry
+                if "/" in fallback_entry:
+                    provider_target, fallback_model = fallback_entry.split("/", 1)
+
+                logger.warning(f"CostOpt: Call to {model_used} failed. Retrying fallback {fallback_model} on provider {provider_target} (attempt {retry_count})...")
                 try:
                     kwargs["model"] = fallback_model
                     response = self._original.create(*args, **kwargs)
@@ -176,6 +183,48 @@ class CostOptCompletions:
             raise last_exception
 
         return response
+
+    def _handle_stream(self, start_time, prompt_text, prompt_hash, model_requested, environment, application, region, args, kwargs):
+        """Generates stream chunks while recording telemetry when stream finishes."""
+        model_used = self._wrapper.router.match_route(prompt_text, model_requested)
+        kwargs["model"] = model_used
+
+        stream_gen = self._original.create(*args, **kwargs)
+        accumulated_chunks = []
+        
+        for chunk in stream_gen:
+            accumulated_chunks.append(chunk)
+            yield chunk
+
+        latency_ms = int((time.time() - start_time) * 1000)
+        input_tokens = len(prompt_text.split()) * 2
+        output_tokens = len(accumulated_chunks)
+        
+        cost_orig = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False)
+        cost_act = calculate_cost(self._wrapper.provider, model_used, input_tokens, output_tokens, cache_hit=False)
+        savings = max(0.0, round(cost_orig - cost_act, 6))
+
+        self._wrapper.telemetry.log({
+            "request_id": str(uuid.uuid4()),
+            "provider": self._wrapper.provider,
+            "model_requested": model_requested,
+            "model_used": model_used,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "latency_ms": latency_ms,
+            "status_code": 200,
+            "success": True,
+            "error_type": None,
+            "cache_hit": False,
+            "cost_original": cost_orig,
+            "cost_actual": cost_act,
+            "savings": savings,
+            "prompt_hash": prompt_hash,
+            "environment": environment,
+            "application": application,
+            "region": region,
+            "retry_count": 0
+        })
 
 
 class CostOptChat:

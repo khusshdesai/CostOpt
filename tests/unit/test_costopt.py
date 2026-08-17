@@ -172,3 +172,17 @@ def test_client_wrapper_intercept(temp_db, temp_yaml):
 
     # Clean shutdown of background logging thread
     client.shutdown()
+
+
+# 6. Test TF-IDF Cosine Vector Cache similarity
+def test_semantic_vector_cosine_cache(temp_db):
+    cache = SQLiteCache(db_path=temp_db, similarity_threshold=0.70)
+    prompt1 = "What is the capital city of France?"
+    prompt2 = "Tell me the capital of France city"
+    mock_resp = {"id": "chatcmpl-vector", "choices": [{"message": {"content": "Paris"}}]}
+
+    cache.set(prompt1, "gpt-4o", mock_resp)
+    match = cache.get(prompt2, "gpt-4o")
+    assert match is not None
+    assert match["choices"][0]["message"]["content"] == "Paris"
+
