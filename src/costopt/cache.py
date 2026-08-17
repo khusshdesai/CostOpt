@@ -24,8 +24,11 @@ class SQLiteCache:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("PRAGMA journal_mode=WAL;")
                 cursor.execute("PRAGMA busy_timeout=5000;")
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                mode_row = cursor.fetchone()
+                mode = mode_row[0] if mode_row else "unknown"
+                logger.debug(f"SQLite Cache DB initialized. Journal mode: {mode}")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS prompt_cache (
                         prompt_hash TEXT PRIMARY KEY,
@@ -40,6 +43,7 @@ class SQLiteCache:
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to initialize SQLite cache database: {e}")
+            raise e
 
     def _get_hash(self, text: str) -> str:
         """Returns MD5 hash for exact matching."""

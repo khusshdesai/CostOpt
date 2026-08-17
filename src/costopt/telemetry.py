@@ -14,18 +14,29 @@ class SQLiteTelemetryLogger:
     def __init__(self, db_path: str = "costopt_telemetry.db"):
         self.db_path = db_path
         self._queue: queue.Queue = queue.Queue()
-        self._init_db()
         self._stop_event = threading.Event()
+        self._is_initialized = False
+
+        try:
+            self._init_db()
+            self._is_initialized = True
+        except Exception as e:
+            logger.error(f"Telemetry DB initialization failed: {e}. Worker thread will not be started.")
+
         self._worker_thread = threading.Thread(target=self._worker, daemon=True)
-        self._worker_thread.start()
+        if self._is_initialized:
+            self._worker_thread.start()
 
     def _init_db(self):
         """Creates the telemetry SQLite database schema if not present."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("PRAGMA journal_mode=WAL;")
                 cursor.execute("PRAGMA busy_timeout=5000;")
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                mode_row = cursor.fetchone()
+                mode = mode_row[0] if mode_row else "unknown"
+                logger.debug(f"SQLite Telemetry DB initialized. Journal mode: {mode}")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS telemetry (
                         timestamp TEXT NOT NULL,
@@ -55,6 +66,7 @@ class SQLiteTelemetryLogger:
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to initialize telemetry database: {e}")
+            raise e
 
     def log(self, record: Dict[str, Any]) -> None:
         """Queues a telemetry record for asynchronous background write."""
