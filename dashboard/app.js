@@ -48,6 +48,96 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnGenerateSim) btnGenerateSim.addEventListener("click", injectSimulationData);
   if (btnRunSim) btnRunSim.addEventListener("click", executeSimulation);
 
+  // Tab View Switcher Logic
+  const navLinks = document.querySelectorAll(".nav-links a[data-tab]");
+  const viewTitle = document.getElementById("view-title");
+  const tabViews = document.querySelectorAll(".tab-view");
+
+  const titleMap = {
+    dashboard: "System Overview",
+    analytics: "Analytics & Performance Metrics",
+    costs: "FinOps Cost Breakdown & Savings Analysis",
+    traces: "Trace Explorer & Log Audit",
+    settings: "System Configuration & Engine Controls"
+  };
+
+  navLinks.forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const targetTab = link.getAttribute("data-tab");
+      
+      navLinks.forEach(l => l.classList.remove("active"));
+      link.classList.add("active");
+
+      tabViews.forEach(v => v.classList.add("hidden-tab"));
+      const targetView = document.getElementById(`view-${targetTab}`);
+      if (targetView) targetView.classList.remove("hidden-tab");
+
+      if (viewTitle && titleMap[targetTab]) {
+        viewTitle.textContent = titleMap[targetTab];
+      }
+
+      if (targetTab === "traces") {
+        updateFullTraceTable();
+      }
+    });
+  });
+
+  // Settings Handlers
+  const threshSlider = document.getElementById("thresh-slider");
+  const threshVal = document.getElementById("thresh-val");
+  if (threshSlider && threshVal) {
+    threshSlider.addEventListener("input", () => {
+      threshVal.textContent = parseFloat(threshSlider.value).toFixed(2);
+    });
+  }
+
+  const btnSettingsClearCache = document.getElementById("btn-settings-clear-cache");
+  if (btnSettingsClearCache) btnSettingsClearCache.addEventListener("click", clearCache);
+
+  const btnSettingsClearTelemetry = document.getElementById("btn-settings-clear-telemetry");
+  if (btnSettingsClearTelemetry) {
+    btnSettingsClearTelemetry.addEventListener("click", () => {
+      if (confirm("Are you sure you want to clear telemetry records?")) {
+        refreshDashboard();
+      }
+    });
+  }
+
+  async function updateFullTraceTable() {
+    const fullTraceTableRows = document.getElementById("full-trace-table-rows");
+    if (!fullTraceTableRows) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/telemetry/recent`);
+      if (!res.ok) return;
+      const logs = await res.json();
+
+      fullTraceTableRows.innerHTML = "";
+      if (logs.length === 0) {
+        fullTraceTableRows.innerHTML = '<tr><td colspan="7" class="text-center muted">No logged traces found in SQLite database.</td></tr>';
+        return;
+      }
+
+      logs.forEach(log => {
+        const row = document.createElement("tr");
+        const timeStr = new Date(log.timestamp).toLocaleTimeString();
+        row.innerHTML = `
+          <td class="muted">${timeStr}</td>
+          <td><code class="fira-code">${log.prompt_hash}</code></td>
+          <td><code>${log.model_requested}</code></td>
+          <td><code>${log.model_used}</code></td>
+          <td class="fira-code">${log.latency_ms}ms</td>
+          <td class="text-green">$${log.cost_actual.toFixed(4)}</td>
+          <td><span class="badge-status ${log.success ? 'active' : 'text-rose'}">${log.status_code || 200}</span></td>
+        `;
+        fullTraceTableRows.appendChild(row);
+      });
+    } catch (e) {
+      console.error("Error updating full trace table: ", e);
+    }
+  }
+
   // Functions
   async function refreshDashboard() {
     console.log("Syncing costopt telemetry analytics...");

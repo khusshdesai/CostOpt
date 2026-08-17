@@ -25,13 +25,13 @@
         <h1>LLM CostOpt</h1>
       </div>
       
-      <!-- Top Navigation Links -->
+      <!-- Interactive Top Navigation Links -->
       <nav class="nav-links">
-        <a href="#" class="active">Dashboard</a>
-        <a href="#">Analytics</a>
-        <a href="#">Costs</a>
-        <a href="#">Traces</a>
-        <a href="#">Settings</a>
+        <a data-tab="dashboard" class="active">Dashboard</a>
+        <a data-tab="analytics">Analytics</a>
+        <a data-tab="costs">Costs</a>
+        <a data-tab="traces">Traces</a>
+        <a data-tab="settings">Settings</a>
       </nav>
 
       <!-- Right Header Actions -->
@@ -47,7 +47,7 @@
     <!-- Subheader Banner -->
     <div class="subheader-bar">
       <div class="subheader-title">
-        <h2>System Overview</h2>
+        <h2 id="view-title">System Overview</h2>
         <p class="status-sub">Status: <span class="text-green">Active</span> | Trace ID: <span class="fira-code">0x8F92A</span></p>
       </div>
       <div class="header-actions">
@@ -57,157 +57,322 @@
       </div>
     </div>
 
-    <!-- Dual Column Main Layout Grid -->
-    <div class="main-grid">
-      
-      <!-- COLUMN 1 (LEFT): SIMULATOR & LOGS -->
-      <section class="left-column">
-        
-        <!-- Interceptor Sim -->
-        <div class="console-panel glass-panel">
-          <div class="panel-header">
-            <span class="panel-icon">📼</span>
-            <h2>SDK INTERCEPTOR SIM</h2>
-          </div>
-          
-          <div class="simulator-body">
-            <div class="form-group">
-              <label for="sim-model">Target Model</label>
-              <select id="sim-model">
-                <!-- Dynamically populated -->
-              </select>
+    <!-- TAB VIEW 1: DASHBOARD -->
+    <div id="view-dashboard" class="tab-view active">
+      <!-- Dual Column Main Layout Grid -->
+      <div class="main-grid">
+        <!-- COLUMN 1 (LEFT): SIMULATOR & LOGS -->
+        <section class="left-column">
+          <!-- Interceptor Sim -->
+          <div class="console-panel glass-panel">
+            <div class="panel-header">
+              <span class="panel-icon">📼</span>
+              <h2>SDK INTERCEPTOR SIM</h2>
             </div>
             
-            <div class="form-group">
-              <label for="sim-prompt">Input Prompt</label>
-              <textarea id="sim-prompt" placeholder="Enter test prompt..." rows="4">Please classify this review: 'The delivery was very slow but customer service was helpful'</textarea>
+            <div class="simulator-body">
+              <div class="form-group">
+                <label for="sim-model">Target Model</label>
+                <select id="sim-model">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="sim-prompt">Input Prompt</label>
+                <textarea id="sim-prompt" placeholder="Enter test prompt..." rows="4">Please classify this review: 'The delivery was very slow but customer service was helpful'</textarea>
+              </div>
+
+              <button id="btn-run-sim" class="btn btn-outlined btn-run-intercept">▶ RUN INTERCEPT TEST</button>
+            </div>
+          </div>
+
+          <!-- Monospace Trace Logs -->
+          <div class="console-panel glass-panel logs-panel">
+            <div class="panel-header">
+              <span class="panel-icon">🖥️</span>
+              <h2>TRACE LOGS</h2>
+              <span id="sim-status-badge" class="badge-status">IDLE</span>
+            </div>
+            <div class="terminal-screen" id="sim-terminal">
+              <div class="terminal-line muted">// Interceptor logs will output here after simulation runs...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLUMN 2 (RIGHT): OBSERVABILITY METRICS & TABLE -->
+        <section class="right-column">
+          <!-- Metrics Row -->
+          <div class="metrics-subgrid">
+            <div class="metric-card glass-panel card-glow-indigo">
+              <div class="card-content">
+                <div class="metric-info">
+                  <h3>ACTUAL SPEND (1K)</h3>
+                  <div class="metric-value" id="val-actual-cost">$0.00</div>
+                  <div class="metric-subtext">Original: <span id="val-baseline-cost">$0.00</span></div>
+                </div>
+                <div class="metric-icon">💰</div>
+              </div>
             </div>
 
-            <button id="btn-run-sim" class="btn btn-outlined btn-run-intercept">▶ RUN INTERCEPT TEST</button>
-          </div>
-        </div>
+            <div class="metric-card glass-panel card-glow-green">
+              <div class="card-content">
+                <div class="metric-info">
+                  <h3>NET SAVINGS</h3>
+                  <div class="metric-value text-green" id="val-savings">$0.00</div>
+                  <div class="metric-subtext"><span id="val-savings-pct">0.0%</span> saved via SDK</div>
+                </div>
+                <div class="metric-icon">📈</div>
+              </div>
+            </div>
 
-        <!-- Monospace Trace Logs -->
-        <div class="console-panel glass-panel logs-panel">
+            <div class="metric-card glass-panel card-glow-cyan">
+              <div class="card-content">
+                <div class="metric-info">
+                  <h3>GLOBAL CACHE HITS</h3>
+                  <div class="metric-value" id="val-cache-rate">0.0%</div>
+                  <div class="metric-subtext">Hits: <span id="val-cache-hits">0</span> items</div>
+                </div>
+                <div class="metric-icon">⚡</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Telemetry Stream Table -->
+          <div class="log-explorer glass-panel">
+            <div class="card-header">
+              <div class="card-header-info">
+                <h2>📜 LIVE TELEMETRY STREAM</h2>
+              </div>
+            </div>
+            <div class="log-table-container">
+              <table class="log-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>MD5 Hash</th>
+                    <th>Original Model</th>
+                    <th>Used Model</th>
+                    <th>Actual Cost</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="telemetry-log-rows">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom Optimization Strategies, Config & Anomalies -->
+      <div class="bottom-grid">
+        <div class="detail-panel glass-panel">
           <div class="panel-header">
-            <span class="panel-icon">🖥️</span>
-            <h2>TRACE LOGS</h2>
-            <span id="sim-status-badge" class="badge-status">IDLE</span>
+            <h2>💡 Active Optimization Strategies</h2>
+            <p>Actionable, evidence-backed saving recommendations detected from log stream</p>
           </div>
-          <div class="terminal-screen" id="sim-terminal">
-            <div class="terminal-line muted">// Interceptor logs will output here after simulation runs...</div>
-          </div>
-        </div>
-
-      </section>
-
-      <!-- COLUMN 2 (RIGHT): OBSERVABILITY METRICS & TABLE -->
-      <section class="right-column">
-        
-        <!-- Metrics Row -->
-        <div class="metrics-subgrid">
-          <!-- Actual Spend -->
-          <div class="metric-card glass-panel card-glow-indigo">
-            <div class="card-content">
-              <div class="metric-info">
-                <h3>ACTUAL SPEND (1K)</h3>
-                <div class="metric-value" id="val-actual-cost">$0.00</div>
-                <div class="metric-subtext">Original: <span id="val-baseline-cost">$0.00</span></div>
-              </div>
-              <div class="metric-icon">💰</div>
-            </div>
-          </div>
-
-          <!-- Net Savings -->
-          <div class="metric-card glass-panel card-glow-green">
-            <div class="card-content">
-              <div class="metric-info">
-                <h3>NET SAVINGS</h3>
-                <div class="metric-value text-green" id="val-savings">$0.00</div>
-                <div class="metric-subtext"><span id="val-savings-pct">0.0%</span> saved via SDK</div>
-              </div>
-              <div class="metric-icon">📈</div>
-            </div>
-          </div>
-
-          <!-- Global Cache Hits -->
-          <div class="metric-card glass-panel card-glow-cyan">
-            <div class="card-content">
-              <div class="metric-info">
-                <h3>GLOBAL CACHE HITS</h3>
-                <div class="metric-value" id="val-cache-rate">0.0%</div>
-                <div class="metric-subtext">Hits: <span id="val-cache-hits">0</span> items</div>
-              </div>
-              <div class="metric-icon">⚡</div>
-            </div>
+          <div class="recommendations-list" id="recommendations-list">
+            <div class="loading-state">Evaluating telemetry logs...</div>
           </div>
         </div>
 
-        <!-- Live Telemetry Stream Table -->
-        <div class="log-explorer glass-panel">
-          <div class="card-header">
-            <div class="card-header-info">
-              <h2>📜 LIVE TELEMETRY STREAM</h2>
-            </div>
+        <div class="detail-panel glass-panel config-panel">
+          <div class="panel-header">
+            <h2>⚙️ Active costopt.yaml Policy Rules</h2>
+            <p>Active model rerouting parameters and fallback sequences loaded into the client runtime</p>
           </div>
-          <div class="log-table-container">
-            <table class="log-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>MD5 Hash</th>
-                  <th>Original Model</th>
-                  <th>Used Model</th>
-                  <th>Actual Cost</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="telemetry-log-rows">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
+          <pre class="yaml-viewer"><code id="config-code-block" class="fira-code">loading costopt.yaml...</code></pre>
+        </div>
+
+        <div class="detail-panel glass-panel">
+          <div class="panel-header">
+            <h2>🚨 Anomaly & Cost Spikes</h2>
+            <p>Unusual activity flagged by statistical Z-score checks</p>
           </div>
-        </div>
-
-      </section>
-
-    </div>
-
-    <!-- Bottom Optimization Strategies, Config & Anomalies -->
-    <div class="bottom-grid">
-      <!-- Recommendations -->
-      <div class="detail-panel glass-panel">
-        <div class="panel-header">
-          <h2>💡 Active Optimization Strategies</h2>
-          <p>Actionable, evidence-backed saving recommendations detected from log stream</p>
-        </div>
-        <div class="recommendations-list" id="recommendations-list">
-          <div class="loading-state">Evaluating telemetry logs...</div>
-        </div>
-      </div>
-
-      <!-- Active config.yaml rules -->
-      <div class="detail-panel glass-panel config-panel">
-        <div class="panel-header">
-          <h2>⚙️ Active costopt.yaml Policy Rules</h2>
-          <p>Active model rerouting parameters and fallback sequences loaded into the client runtime</p>
-        </div>
-        <pre class="yaml-viewer"><code id="config-code-block" class="fira-code">loading costopt.yaml...</code></pre>
-      </div>
-
-      <!-- Anomalies -->
-      <div class="detail-panel glass-panel">
-        <div class="panel-header">
-          <h2>🚨 Anomaly & Cost Spikes</h2>
-          <p>Unusual activity flagged by statistical Z-score checks</p>
-        </div>
-        <div class="anomalies-list" id="anomalies-list">
-          <div class="loading-state">Checking baseline thresholds...</div>
+          <div class="anomalies-list" id="anomalies-list">
+            <div class="loading-state">Checking baseline thresholds...</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Hidden canvas for chart calculations, to keep dashboard layout identical to Stitch design -->
+    <!-- TAB VIEW 2: ANALYTICS -->
+    <div id="view-analytics" class="tab-view hidden-tab">
+      <div class="main-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="console-panel glass-panel">
+          <div class="panel-header">
+            <h2>📊 Provider Usage & Token Volumes</h2>
+          </div>
+          <div style="padding: 24px; color: var(--text-secondary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
+              <span>OpenAI API</span>
+              <span class="fira-code text-green">142,500 Tokens</span>
+            </div>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:20px;">
+              <div style="width:75%; height:100%; background:var(--accent-indigo); border-radius:4px;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
+              <span>Anthropic API</span>
+              <span class="fira-code text-cyan">38,200 Tokens</span>
+            </div>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:20px;">
+              <div style="width:40%; height:100%; background:var(--accent-cyan); border-radius:4px;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
+              <span>Google Gemini API</span>
+              <span class="fira-code text-emerald">12,100 Tokens</span>
+            </div>
+            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px;">
+              <div style="width:20%; height:100%; background:var(--accent-emerald); border-radius:4px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="console-panel glass-panel">
+          <div class="panel-header">
+            <h2>⚡ Cache Efficiency & Latency Specs</h2>
+          </div>
+          <div style="padding: 24px; color: var(--text-secondary);">
+            <p style="margin-bottom:16px;">Average Response Latency: <strong class="fira-code text-green">184ms</strong> (Cached) vs <strong class="fira-code">1,240ms</strong> (API Direct)</p>
+            <p style="margin-bottom:16px;">Vector Cosine Match Threshold: <strong class="fira-code text-cyan">0.70 (Semantic Matching Active)</strong></p>
+            <p style="margin-bottom:16px;">Database Cache Size: <strong class="fira-code">154 cached items</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB VIEW 3: COSTS -->
+    <div id="view-costs" class="tab-view hidden-tab">
+      <div class="log-explorer glass-panel">
+        <div class="card-header">
+          <h2>💰 Detailed FinOps Cost Breakdown per Model</h2>
+        </div>
+        <div class="log-table-container">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th>Model Name</th>
+                <th>Provider</th>
+                <th>Input Rate (/1M)</th>
+                <th>Output Rate (/1M)</th>
+                <th>Cache Savings</th>
+                <th>Reroute Savings</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fira-code">gpt-4o</td>
+                <td>OpenAI</td>
+                <td>$5.00</td>
+                <td>$15.00</td>
+                <td class="text-green">$0.5420</td>
+                <td class="text-green">$0.2400</td>
+              </tr>
+              <tr>
+                <td class="fira-code">gpt-4o-mini</td>
+                <td>OpenAI</td>
+                <td>$0.15</td>
+                <td>$0.60</td>
+                <td class="text-green">$0.0450</td>
+                <td class="text-green">$0.0000</td>
+              </tr>
+              <tr>
+                <td class="fira-code">claude-3-5-sonnet</td>
+                <td>Anthropic</td>
+                <td>$3.00</td>
+                <td>$15.00</td>
+                <td class="text-green">$0.0535</td>
+                <td class="text-green">$0.0000</td>
+              </tr>
+              <tr>
+                <td class="fira-code">gemini-1.5-flash</td>
+                <td>Google</td>
+                <td>$0.35</td>
+                <td>$1.05</td>
+                <td class="text-green">$0.0000</td>
+                <td class="text-green">$0.0000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB VIEW 4: TRACES -->
+    <div id="view-traces" class="tab-view hidden-tab">
+      <div class="log-explorer glass-panel">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>🕵️ Full-Screen Trace Explorer</h2>
+          <input type="text" id="trace-search" placeholder="Search by MD5 hash or model..." style="background:var(--bg-input); border:1px solid var(--border-color); color:var(--text-primary); padding:8px 14px; border-radius:6px; font-family:var(--font-mono); width:300px;">
+        </div>
+        <div class="log-table-container">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>MD5 Hash</th>
+                <th>Requested Model</th>
+                <th>Executed Model</th>
+                <th>Latency</th>
+                <th>Cost</th>
+                <th>Status Code</th>
+              </tr>
+            </thead>
+            <tbody id="full-trace-table-rows">
+              <!-- Dynamically syncs with telemetry stream -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB VIEW 5: SETTINGS -->
+    <div id="view-settings" class="tab-view hidden-tab">
+      <div class="main-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="console-panel glass-panel">
+          <div class="panel-header">
+            <h2>⚙️ Engine Configuration</h2>
+          </div>
+          <div style="padding: 24px;">
+            <div class="form-group" style="margin-bottom:20px;">
+              <label style="display:block; margin-bottom:8px; font-weight:600;">Semantic Vector Similarity Threshold: <span id="thresh-val" class="fira-code text-cyan">0.70</span></label>
+              <input type="range" id="thresh-slider" min="0.50" max="1.00" step="0.05" value="0.70" style="width:100%;">
+            </div>
+            
+            <div style="margin-top:24px;">
+              <button id="btn-settings-clear-cache" class="btn btn-secondary" style="margin-right:12px;">CLEAR CACHE DB</button>
+              <button id="btn-settings-clear-telemetry" class="btn btn-secondary">CLEAR TELEMETRY DB</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="console-panel glass-panel">
+          <div class="panel-header">
+            <h2>🔌 Provider Connections</h2>
+          </div>
+          <div style="padding: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <span>OpenAI API Client</span>
+              <span class="badge-status text-green">CONNECTED</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <span>Anthropic API Client</span>
+              <span class="badge-status text-green">CONNECTED</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Google Gemini API Client</span>
+              <span class="badge-status text-green">CONNECTED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden canvas for chart calculations -->
     <div style="display:none;">
       <canvas id="savingsChart"></canvas>
     </div>
