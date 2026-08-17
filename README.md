@@ -126,6 +126,29 @@ routing:
     gpt-4o: ["claude-3-5-sonnet", "gpt-4o-mini"]
 ```
 
+### 📁 Custom Models & User Local Overrides
+Want to track pricing for fine-tuned, local Ollama, or newly released models (e.g., `llama3.2`, `gpt-5`, or `my-custom-model`)? You don't need to wait for a package update!
+
+1. Create a `my_pricing/custom.yaml` file in your project:
+   ```yaml
+   provider: "my_provider"
+   models:
+     my-custom-model:
+       input_cost_per_1m: 0.0
+       output_cost_per_1m: 0.0
+     gpt-5-preview:
+       input_cost_per_1m: 10.00
+       output_cost_per_1m: 30.00
+   ```
+
+2. Pass your custom pricing directory when initializing `CostOpt`:
+   ```python
+   from costopt import CostOpt
+   from openai import OpenAI
+
+   client = CostOpt(OpenAI(), pricing_dir="./my_pricing")
+   ```
+
 ---
 
 ## 🧩 Extending LLM CostOpt (Contribution Hooks)
