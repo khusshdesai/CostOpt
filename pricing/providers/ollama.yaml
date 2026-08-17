@@ -1,0 +1,44 @@
+provider: "ollama"
+currency: "USD"
+models:
+  llama3:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 8192
+
+  llama3.1:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 128000
+
+  llama3.2:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 128000
+
+  mistral:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 32768
+
+  deepseek-r1:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 64000
+
+  phi3:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 4096
+
+  qwen2.5:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+    cached_input_cost_per_1m: 0.0
+    context_window: 32768

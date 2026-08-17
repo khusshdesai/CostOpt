@@ -1,30 +1,21 @@
 routing:
   fallbacks:
     claude-3-5-sonnet:
-    - gpt-4o
-    - claude-3-haiku
-    gpt-4:
-    - gpt-4o
-    - claude-3-5-sonnet
+      - gpt-4o
+      - claude-3-haiku
+      - llama3
     gpt-4o:
-    - claude-3-5-sonnet
-    - gpt-4o-mini
+      - gpt-4o-mini
+      - llama3
+      - deepseek-r1
   rules:
-  - keywords:
-    - classify
-    - yes/no
-    - sentiment
-    - label
-    - extract
-    max_prompt_length: 500
-    name: Simple text classification
-    original_model: gpt-4o
-    target_model: gpt-4o-mini
-  - keywords:
-    - summarize
-    - translate
-    - tldr
-    max_prompt_length: 800
-    name: Short summary translation
-    original_model: claude-3-5-sonnet
-    target_model: claude-3-haiku
+    - name: "Simple text classification"
+      keywords: ["classify", "yes/no", "sentiment", "label", "extract"]
+      max_prompt_length: 500
+      original_model: "gpt-4o"
+      target_model: "gpt-4o-mini"
+    - name: "Local zero-cost offline processing"
+      keywords: ["local", "offline", "private", "draft", "summary"]
+      max_prompt_length: 2000
+      original_model: "gpt-4o"
+      target_model: "llama3"
