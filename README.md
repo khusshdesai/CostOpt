@@ -83,10 +83,8 @@ graph TD
 ### 1. Installation
 
 ```bash
-pip install git+https://github.com/khusshdesai/CostOpt.git
+pip install costopt
 ```
-
-> **PyPI release coming soon** — track progress in [Issues](https://github.com/khusshdesai/CostOpt/issues).
 
 ### 2. Basic Integration
 
