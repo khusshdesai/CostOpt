@@ -32,7 +32,7 @@
 
 - **Zero-Churn 1-Line SDK Interception**: Drop-in wrapper patches standard completion clients (`client = CostOpt(OpenAI())`) with zero modifications to existing calling code.
 - **Automated Cost Optimization**: Intelligent intent detection automatically routes lightweight queries (like sentiment or text formatting) from expensive models (`gpt-4o`) to low-cost models (`gpt-4o-mini` or local `llama3`), preserving response quality while cutting spend.
-- **Semantic & Token Similarity Cache**: High-speed token & semantic similarity cache returns **0ms latency, $0.00 cost** hits on prompt variations.
+- **Lexical Similarity Cache**: High-speed token & character n-gram similarity cache returns **sub-2ms latency, $0.00 cost** on repeated or similar prompts.
 - **Local & Offline Model Support**: Seamlessly route to local **Ollama** models (`llama3`, `mistral`, `deepseek-r1`, `qwen2.5`) for 100% free offline execution.
 - **100% Private Local Telemetry**: Logs financial metrics, latency distributions, and MD5 trace hashes to a local SQLite database—zero data shared with third-party servers.
 
@@ -83,8 +83,10 @@ graph TD
 ### 1. Installation
 
 ```bash
-pip install costopt
+pip install git+https://github.com/khusshdesai/CostOpt.git
 ```
+
+> **PyPI release coming soon** — track progress in [Issues](https://github.com/khusshdesai/CostOpt/issues).
 
 ### 2. Basic Integration
 

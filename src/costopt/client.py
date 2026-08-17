@@ -189,17 +189,40 @@ class CostOptCompletions:
         model_used = self._wrapper.router.match_route(prompt_text, model_requested)
         kwargs["model"] = model_used
 
-        stream_gen = self._original.create(*args, **kwargs)
+        try:
+            stream_gen = self._original.create(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"CostOpt stream: Primary call to {model_used} failed: {e}")
+            fallbacks = self._wrapper.router.get_fallbacks(model_used)
+            stream_gen = None
+            for fb in fallbacks:
+                try:
+                    kwargs["model"] = fb
+                    stream_gen = self._original.create(*args, **kwargs)
+                    model_used = fb
+                    break
+                except Exception:
+                    continue
+            if stream_gen is None:
+                raise e
+
         accumulated_chunks = []
-        
         for chunk in stream_gen:
             accumulated_chunks.append(chunk)
             yield chunk
 
         latency_ms = int((time.time() - start_time) * 1000)
-        input_tokens = len(prompt_text.split()) * 2
+
+        # Use tiktoken for accurate input token count
+        try:
+            import tiktoken
+            enc = tiktoken.encoding_for_model("gpt-4o")  # compatible encoding for token counting
+            input_tokens = len(enc.encode(prompt_text))
+        except Exception:
+            input_tokens = len(prompt_text.split())
+
         output_tokens = len(accumulated_chunks)
-        
+
         cost_orig = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False)
         cost_act = calculate_cost(self._wrapper.provider, model_used, input_tokens, output_tokens, cache_hit=False)
         savings = max(0.0, round(cost_orig - cost_act, 6))

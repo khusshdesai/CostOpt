@@ -139,7 +139,7 @@ response = client.chat.completions.create(
       openModal("🔔 System Notifications & Alerts", `
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div style="background:rgba(16,185,129,0.1); border:1px solid var(--accent-emerald); padding:14px; border-radius:8px;">
-            <strong style="color:var(--accent-emerald); display:block; margin-bottom:4px;">[SYSTEM] Semantic Vector Cache Active</strong>
+            <strong style="color:var(--accent-emerald); display:block; margin-bottom:4px;">[SYSTEM] Lexical Similarity Cache Active</strong>
             <p style="font-size:0.85rem; color:var(--text-secondary);">Cosine vector threshold set to 0.70. Saved 154 requests locally in SQLite database.</p>
           </div>
           <div style="background:rgba(79,70,229,0.1); border:1px solid var(--accent-indigo); padding:14px; border-radius:8px;">

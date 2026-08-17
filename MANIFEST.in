@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+include costopt.yaml
+recursive-include pricing *.yaml
+recursive-include dashboard *.html *.css *.js
+recursive-include src *.py

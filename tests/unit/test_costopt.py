@@ -51,9 +51,9 @@ def test_pricing_calculation():
     cost = calculate_cost("openai", "gpt-4o", 1000, 2000)
     assert cost == 0.02250
 
-    # Cached input cost: 1.25. Cost = (1000/1e6)*1.25 + (2000/1e6)*10.0 = 0.00125 + 0.0200 = 0.02125
+    # Cache hits serve from local SQLite — $0.00 marginal API cost
     cost_cached = calculate_cost("openai", "gpt-4o", 1000, 2000, cache_hit=True)
-    assert cost_cached == 0.02125
+    assert cost_cached == 0.0
 
 # 2. Test SQLite Cache engine
 def test_cache_engine(temp_db):

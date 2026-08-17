@@ -4,14 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "costopt"
-version = "1.0.0"
-description = "Drop-in LLM API cost optimization SDK and local developer dashboard"
+version = "0.1.0"
+description = "Drop-in LLM API cost optimization SDK with lexical similarity caching, smart model routing, and local observability dashboard"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
@@ -35,3 +34,12 @@ costopt = "costopt.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = [
+    "pricing/providers/*.yaml",
+    "pricing/schema.yaml",
+    "dashboard/*.html",
+    "dashboard/*.css",
+    "dashboard/*.js",
+]

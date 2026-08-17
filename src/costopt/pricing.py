@@ -62,10 +62,16 @@ def get_pricing(provider: str, model: str, pricing_dir: Optional[str] = None) ->
         if model_key in provider_data:
             return provider_data[model_key]
         
-        # Check fuzzy/substring match (e.g. gpt-4o-2024-05-13 matches gpt-4o prefix)
+        # Check fuzzy/substring match — return the most specific (longest) match
+        best_match = None
+        best_len = 0
         for known_model, pricing_info in provider_data.items():
             if model_key.startswith(known_model) or known_model in model_key:
-                return pricing_info
+                if len(known_model) > best_len:
+                    best_match = pricing_info
+                    best_len = len(known_model)
+        if best_match:
+            return best_match
 
     return None
 
@@ -87,7 +93,11 @@ def calculate_cost(
         logger.debug(f"Pricing info not found for provider={provider}, model={model}. Defaulting to 0.0 cost.")
         return 0.0
 
-    input_rate = pricing["cached_input_cost_per_1m"] if cache_hit else pricing["input_cost_per_1m"]
+    # Cache hits serve from local SQLite — zero marginal API cost
+    if cache_hit:
+        return 0.0
+
+    input_rate = pricing["input_cost_per_1m"]
     output_rate = pricing["output_cost_per_1m"]
 
     input_cost = (input_tokens / 1_000_000.0) * input_rate

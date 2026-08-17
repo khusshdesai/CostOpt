@@ -26,10 +26,9 @@ Thank you for your interest in contributing to **CostOpt**! We welcome contribut
    pip install -e ".[dev]"
    ```
 
-4. **Run Unit Tests & Security Audits**:
+4. **Run Unit Tests**:
    ```bash
-   python -m pytest tests/unit/test_costopt.py
-   python scripts/security_test.py
+   python -m pytest tests/unit/
    ```
 
 ---
@@ -39,7 +38,7 @@ Thank you for your interest in contributing to **CostOpt**! We welcome contribut
 CostOpt is built around modular abstractions. Here is where you can contribute new features:
 
 - **Adding Pricing Catalogs**: Drop a new YAML configuration under `pricing/providers/<provider_name>.yaml`.
-- **Custom Cache Backends**: Inherit from `BaseCache` in `src/costopt/cache.py` (e.g. Redis, Qdrant).
+- **Custom Cache Backends**: Drop-in replacement for `SQLiteCache` in `src/costopt/cache.py` (e.g. Redis, Qdrant) by implementing `get(prompt, model)` and `set(prompt, model, response)` methods.
 - **Custom Routing Strategies**: Implement custom complexity rules in `src/costopt/router.py`.
 - **Telemetry Exporters**: Add OpenTelemetry or Datadog exporter adapters in `src/costopt/telemetry.py`.
 

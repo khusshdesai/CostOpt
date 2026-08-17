@@ -158,7 +158,7 @@ class SQLiteCache:
 
         try:
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.conn.cursor() if hasattr(conn, "conn") else conn.cursor()
+                cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO prompt_cache (prompt_hash, model, prompt_text, response_json, created_at, expires_at)
                     VALUES (?, ?, ?, ?, ?, ?)
