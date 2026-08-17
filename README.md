@@ -1,6 +1,8 @@
 <p align="center">
   <br />
-  <h1 align="center">⚡ CostOpt</h1>
+  <img src="docs/images/costopt_logo.png" width="140" alt="CostOpt Logo Badge" />
+  <br />
+  <br />
   <p align="center">
     <strong>Drop-in LLM API cost optimization SDK & local developer observability platform.</strong>
     <br />
@@ -19,6 +21,7 @@
   <img src="https://img.shields.io/badge/OpenAI-supported-412991?style=for-the-badge&logo=openai&logoColor=white" />
   <img src="https://img.shields.io/badge/Anthropic-supported-D97706?style=for-the-badge&logo=anthropic&logoColor=white" />
   <img src="https://img.shields.io/badge/Google_Gemini-supported-4285F4?style=for-the-badge&logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/Hugging_Face-supported-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" />
   <img src="https://img.shields.io/badge/Ollama_(Local)-supported-000000?style=for-the-badge&logo=ollama&logoColor=white" />
   <img src="https://img.shields.io/badge/FastAPI-supported-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
 </p>
