@@ -76,3 +76,15 @@ ENV/development/
 # It is recommended to commit a costopt.yaml.example instead of costopt.yaml if it contains local paths.
 # We will keep costopt.yaml committed by default as it serves as a template, 
 # but if you add custom server locations, you can add costopt.yaml to your gitignore.
+
+# SQLite WAL mode sidecar files
+*.db-shm
+*.db-wal
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Local test and development scripts
+scripts/
