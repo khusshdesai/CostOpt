@@ -180,5 +180,10 @@ python -m pytest tests/unit/test_costopt.py
 
 ---
 
+## 🛡️ Security Audit
+CostOpt has undergone automated penetration testing for SQL injections, CORS misconfigurations, and rate-limiting DB locks. See the full audit report at [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
