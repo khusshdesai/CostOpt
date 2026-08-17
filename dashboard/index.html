@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM CostOpt — Developer Observability & Optimization Console</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <div class="radial-glow glow-1"></div>
+    <div class="radial-glow glow-2"></div>
+
+    <!-- Stitch-aligned Header -->
+    <header class="main-header glass-panel">
+      <div class="brand">
+        <span class="logo-icon">⚡</span>
+        <h1>LLM CostOpt</h1>
+      </div>
+      
+      <!-- Top Navigation Links -->
+      <nav class="nav-links">
+        <a href="#" class="active">Dashboard</a>
+        <a href="#">Analytics</a>
+        <a href="#">Costs</a>
+        <a href="#">Traces</a>
+        <a href="#">Settings</a>
+      </nav>
+
+      <!-- Right Header Actions -->
+      <div class="right-header">
+        <span class="sdk-badge"><span class="dot"></span>SDK Active</span>
+        <button class="btn btn-outlined btn-deploy">Deploy SDK</button>
+        <span class="icon-btn">🔔</span>
+        <span class="icon-btn">⚙️</span>
+        <div class="profile-avatar"></div>
+      </div>
+    </header>
+
+    <!-- Subheader Banner -->
+    <div class="subheader-bar">
+      <div class="subheader-title">
+        <h2>System Overview</h2>
+        <p class="status-sub">Status: <span class="text-green">Active</span> | Trace ID: <span class="fira-code">0x8F92A</span></p>
+      </div>
+      <div class="header-actions">
+        <button id="btn-generate-sim" class="btn btn-secondary">INJECT SIM DATA</button>
+        <button id="btn-clear-cache" class="btn btn-secondary">CLEAR CACHE</button>
+        <button id="btn-refresh" class="btn btn-primary">SYNC ANALYTICS</button>
+      </div>
+    </div>
+
+    <!-- Dual Column Main Layout Grid -->
+    <div class="main-grid">
+      
+      <!-- COLUMN 1 (LEFT): SIMULATOR & LOGS -->
+      <section class="left-column">
+        
+        <!-- Interceptor Sim -->
+        <div class="console-panel glass-panel">
+          <div class="panel-header">
+            <span class="panel-icon">📼</span>
+            <h2>SDK INTERCEPTOR SIM</h2>
+          </div>
+          
+          <div class="simulator-body">
+            <div class="form-group">
+              <label for="sim-model">Target Model</label>
+              <select id="sim-model">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="sim-prompt">Input Prompt</label>
+              <textarea id="sim-prompt" placeholder="Enter test prompt..." rows="4">Please classify this review: 'The delivery was very slow but customer service was helpful'</textarea>
+            </div>
+
+            <button id="btn-run-sim" class="btn btn-outlined btn-run-intercept">▶ RUN INTERCEPT TEST</button>
+          </div>
+        </div>
+
+        <!-- Monospace Trace Logs -->
+        <div class="console-panel glass-panel logs-panel">
+          <div class="panel-header">
+            <span class="panel-icon">🖥️</span>
+            <h2>TRACE LOGS</h2>
+            <span id="sim-status-badge" class="badge-status">IDLE</span>
+          </div>
+          <div class="terminal-screen" id="sim-terminal">
+            <div class="terminal-line muted">// Interceptor logs will output here after simulation runs...</div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- COLUMN 2 (RIGHT): OBSERVABILITY METRICS & TABLE -->
+      <section class="right-column">
+        
+        <!-- Metrics Row -->
+        <div class="metrics-subgrid">
+          <!-- Actual Spend -->
+          <div class="metric-card glass-panel card-glow-indigo">
+            <div class="card-content">
+              <div class="metric-info">
+                <h3>ACTUAL SPEND (1K)</h3>
+                <div class="metric-value" id="val-actual-cost">$0.00</div>
+                <div class="metric-subtext">Original: <span id="val-baseline-cost">$0.00</span></div>
+              </div>
+              <div class="metric-icon">💰</div>
+            </div>
+          </div>
+
+          <!-- Net Savings -->
+          <div class="metric-card glass-panel card-glow-green">
+            <div class="card-content">
+              <div class="metric-info">
+                <h3>NET SAVINGS</h3>
+                <div class="metric-value text-green" id="val-savings">$0.00</div>
+                <div class="metric-subtext"><span id="val-savings-pct">0.0%</span> saved via SDK</div>
+              </div>
+              <div class="metric-icon">📈</div>
+            </div>
+          </div>
+
+          <!-- Global Cache Hits -->
+          <div class="metric-card glass-panel card-glow-cyan">
+            <div class="card-content">
+              <div class="metric-info">
+                <h3>GLOBAL CACHE HITS</h3>
+                <div class="metric-value" id="val-cache-rate">0.0%</div>
+                <div class="metric-subtext">Hits: <span id="val-cache-hits">0</span> items</div>
+              </div>
+              <div class="metric-icon">⚡</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Telemetry Stream Table -->
+        <div class="log-explorer glass-panel">
+          <div class="card-header">
+            <div class="card-header-info">
+              <h2>📜 LIVE TELEMETRY STREAM</h2>
+            </div>
+          </div>
+          <div class="log-table-container">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>MD5 Hash</th>
+                  <th>Original Model</th>
+                  <th>Used Model</th>
+                  <th>Actual Cost</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-log-rows">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- Bottom Optimization Strategies, Config & Anomalies -->
+    <div class="bottom-grid">
+      <!-- Recommendations -->
+      <div class="detail-panel glass-panel">
+        <div class="panel-header">
+          <h2>💡 Active Optimization Strategies</h2>
+          <p>Actionable, evidence-backed saving recommendations detected from log stream</p>
+        </div>
+        <div class="recommendations-list" id="recommendations-list">
+          <div class="loading-state">Evaluating telemetry logs...</div>
+        </div>
+      </div>
+
+      <!-- Active config.yaml rules -->
+      <div class="detail-panel glass-panel config-panel">
+        <div class="panel-header">
+          <h2>⚙️ Active costopt.yaml Policy Rules</h2>
+          <p>Active model rerouting parameters and fallback sequences loaded into the client runtime</p>
+        </div>
+        <pre class="yaml-viewer"><code id="config-code-block" class="fira-code">loading costopt.yaml...</code></pre>
+      </div>
+
+      <!-- Anomalies -->
+      <div class="detail-panel glass-panel">
+        <div class="panel-header">
+          <h2>🚨 Anomaly & Cost Spikes</h2>
+          <p>Unusual activity flagged by statistical Z-score checks</p>
+        </div>
+        <div class="anomalies-list" id="anomalies-list">
+          <div class="loading-state">Checking baseline thresholds...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden canvas for chart calculations, to keep dashboard layout identical to Stitch design -->
+    <div style="display:none;">
+      <canvas id="savingsChart"></canvas>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>LLM CostOpt is an open-source tool. Data is stored 100% locally in SQLite database files.</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+routing:
+  fallbacks:
+    claude-3-5-sonnet:
+    - gpt-4o
+    - claude-3-haiku
+    gpt-4:
+    - gpt-4o
+    - claude-3-5-sonnet
+    gpt-4o:
+    - claude-3-5-sonnet
+    - gpt-4o-mini
+  rules:
+  - keywords:
+    - classify
+    - yes/no
+    - sentiment
+    - label
+    - extract
+    max_prompt_length: 500
+    name: Simple text classification
+    original_model: gpt-4o
+    target_model: gpt-4o-mini
+  - keywords:
+    - summarize
+    - translate
+    - tldr
+    max_prompt_length: 800
+    name: Short summary translation
+    original_model: claude-3-5-sonnet
+    target_model: claude-3-haiku

@@ -1,0 +1,35 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: ProviderPricing
+type: object
+properties:
+  provider:
+    type: string
+    description: "Name of the LLM provider (e.g. openai, anthropic, google)"
+  currency:
+    type: string
+    description: "Currency code (default: USD)"
+  effective_date:
+    type: string
+    format: date
+  models:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        input_cost_per_1m:
+          type: number
+          description: "Price per 1 million prompt input tokens in currency unit"
+        output_cost_per_1m:
+          type: number
+          description: "Price per 1 million output completion tokens in currency unit"
+        cached_input_cost_per_1m:
+          type: number
+          description: "Price per 1 million cached input tokens (optional)"
+      required:
+        - input_cost_per_1m
+        - output_cost_per_1m
+required:
+  - provider
+  - currency
+  - effective_date
+  - models

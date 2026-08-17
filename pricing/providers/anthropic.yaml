@@ -1,0 +1,16 @@
+provider: anthropic
+currency: USD
+effective_date: "2026-08-17"
+models:
+  claude-3-5-sonnet:
+    input_cost_per_1m: 3.00
+    output_cost_per_1m: 15.00
+    cached_input_cost_per_1m: 0.30
+  claude-3-opus:
+    input_cost_per_1m: 15.00
+    output_cost_per_1m: 75.00
+    cached_input_cost_per_1m: 1.50
+  claude-3-haiku:
+    input_cost_per_1m: 0.25
+    output_cost_per_1m: 1.25
+    cached_input_cost_per_1m: 0.03
