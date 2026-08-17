@@ -37,10 +37,10 @@
       <!-- Right Header Actions -->
       <div class="right-header">
         <span class="sdk-badge"><span class="dot"></span>SDK Active</span>
-        <button class="btn btn-outlined btn-deploy">Deploy SDK</button>
-        <span class="icon-btn">🔔</span>
-        <span class="icon-btn">⚙️</span>
-        <div class="profile-avatar"></div>
+        <button id="btn-deploy-sdk" class="btn btn-outlined btn-deploy">Deploy SDK</button>
+        <span id="btn-notifications" class="icon-btn" title="Notifications & Alerts">🔔</span>
+        <span id="btn-settings-gear" class="icon-btn" title="System Settings">⚙️</span>
+        <div id="btn-profile-avatar" class="profile-avatar" title="Developer Profile"></div>
       </div>
     </header>
 
@@ -375,6 +375,19 @@
     <!-- Hidden canvas for chart calculations -->
     <div style="display:none;">
       <canvas id="savingsChart"></canvas>
+    </div>
+
+    <!-- Reusable Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay hidden-modal">
+      <div class="modal-content glass-panel">
+        <div class="modal-header">
+          <h2 id="modal-title">Modal Title</h2>
+          <button id="modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body">
+          <!-- Content populated dynamically -->
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->

@@ -83,12 +83,115 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Settings Handlers
-  const threshSlider = document.getElementById("thresh-slider");
-  const threshVal = document.getElementById("thresh-val");
-  if (threshSlider && threshVal) {
-    threshSlider.addEventListener("input", () => {
-      threshVal.textContent = parseFloat(threshSlider.value).toFixed(2);
+  // Modal Helper Functions
+  const modalOverlay = document.getElementById("modal-overlay");
+  const modalTitle = document.getElementById("modal-title");
+  const modalBody = document.getElementById("modal-body");
+  const modalClose = document.getElementById("modal-close");
+
+  function openModal(title, contentHtml) {
+    if (!modalOverlay) return;
+    modalTitle.textContent = title;
+    modalBody.innerHTML = contentHtml;
+    modalOverlay.classList.remove("hidden-modal");
+  }
+
+  function closeModal() {
+    if (modalOverlay) modalOverlay.classList.add("hidden-modal");
+  }
+
+  if (modalClose) modalClose.addEventListener("click", closeModal);
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+  }
+
+  // Header Button Event Listeners
+  const btnDeploySdk = document.getElementById("btn-deploy-sdk");
+  if (btnDeploySdk) {
+    btnDeploySdk.addEventListener("click", () => {
+      openModal("🚀 Deploy CostOpt SDK", `
+        <p style="margin-bottom:12px; color:var(--text-secondary);">Install the Python package from PyPI:</p>
+        <div class="code-copy-box">
+          <code>pip install costopt</code>
+          <button class="btn-copy" onclick="navigator.clipboard.writeText('pip install costopt'); this.textContent='Copied!';">Copy</button>
+        </div>
+        <p style="margin-top:20px; margin-bottom:12px; color:var(--text-secondary);">One-Line Client Interception Wrapper:</p>
+        <pre class="fira-code" style="background:var(--bg-terminal); padding:16px; border-radius:8px; border:1px solid var(--border-color); color:var(--text-primary); font-size:0.85rem; overflow-x:auto;">from openai import OpenAI
+from costopt import CostOpt
+
+# Wrap client in one line
+client = CostOpt(OpenAI(api_key="your-api-key"))
+
+# All completion requests are automatically cached, rerouted & logged!
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello world!"}]
+)</pre>
+      `);
+    });
+  }
+
+  const btnNotifications = document.getElementById("btn-notifications");
+  if (btnNotifications) {
+    btnNotifications.addEventListener("click", () => {
+      openModal("🔔 System Notifications & Alerts", `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="background:rgba(16,185,129,0.1); border:1px solid var(--accent-emerald); padding:14px; border-radius:8px;">
+            <strong style="color:var(--accent-emerald); display:block; margin-bottom:4px;">[SYSTEM] Semantic Vector Cache Active</strong>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Cosine vector threshold set to 0.70. Saved 154 requests locally in SQLite database.</p>
+          </div>
+          <div style="background:rgba(79,70,229,0.1); border:1px solid var(--accent-indigo); padding:14px; border-radius:8px;">
+            <strong style="color:var(--accent-indigo); display:block; margin-bottom:4px;">[FINOPS] Cost Reroute Success</strong>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">34 requests automatically rerouted from gpt-4o -> gpt-4o-mini, saving $0.2400 USD.</p>
+          </div>
+        </div>
+      `);
+    });
+  }
+
+  const btnSettingsGear = document.getElementById("btn-settings-gear");
+  if (btnSettingsGear) {
+    btnSettingsGear.addEventListener("click", () => {
+      const settingsTabLink = document.querySelector('.nav-links a[data-tab="settings"]');
+      if (settingsTabLink) settingsTabLink.click();
+    });
+  }
+
+  const btnProfileAvatar = document.getElementById("btn-profile-avatar");
+  if (btnProfileAvatar) {
+    btnProfileAvatar.addEventListener("click", () => {
+      openModal("👤 Developer Profile & Workspace", `
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+          <div style="width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan)); display:flex; align-items:center; justify-content:center; font-size:1.5rem;">👨‍💻</div>
+          <div>
+            <h3 style="color:var(--text-primary);">Khussh Desai</h3>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">Workspace: <code class="fira-code" style="color:var(--accent-cyan);">khusshdesai/CostOpt</code></p>
+          </div>
+        </div>
+        <hr style="border:none; border-top:1px solid var(--border-color); margin:16px 0;">
+        <p style="margin-bottom:10px;">Environment: <span class="badge-status active">production</span></p>
+        <p style="margin-bottom:10px;">Telemetry Engine: <span class="fira-code">SQLite Local Store</span></p>
+        <p>GitHub Repository: <a href="https://github.com/khusshdesai/CostOpt" target="_blank" style="color:var(--accent-cyan);">github.com/khusshdesai/CostOpt</a></p>
+      `);
+    });
+  }
+
+  // Live Trace Table Search Filter Handler
+  const traceSearch = document.getElementById("trace-search");
+  if (traceSearch) {
+    traceSearch.addEventListener("input", () => {
+      const query = traceSearch.value.toLowerCase().trim();
+      const rows = document.querySelectorAll("#full-trace-table-rows tr");
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(query)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
     });
   }
 
