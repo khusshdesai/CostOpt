@@ -372,6 +372,21 @@ response = client.chat.completions.create(
     });
   }
 
+  function formatTimestamp(ts) {
+    if (!ts) return new Date().toLocaleTimeString();
+    const isoTs = ts.toString().replace(" ", "T");
+    const d = new Date(isoTs);
+    if (isNaN(d.getTime())) return new Date().toLocaleTimeString();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function formatConfidence(conf) {
+    if (!conf) return "High Priority";
+    const clean = conf.toString().replace(/_/g, " ").toLowerCase();
+    const titleCase = clean.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return `${titleCase}`;
+  }
+
   async function updateRecentLogs() {
     const res = await fetch(`${API_BASE}/telemetry/recent`);
     if (!res.ok) return;
@@ -395,8 +410,7 @@ response = client.chat.completions.create(
         statusBadge = '<span class="log-badge badge-direct">DIRECT</span>';
       }
 
-      // Convert timestamp to hh:mm:ss
-      const timeStr = new Date(log.timestamp).toLocaleTimeString();
+      const timeStr = formatTimestamp(log.timestamp);
 
       row.innerHTML = `
         <td class="muted">${timeStr}</td>
@@ -430,7 +444,9 @@ response = client.chat.completions.create(
     recommendations.forEach(reco => {
       const item = document.createElement("div");
       item.className = "reco-item";
-      const confidenceClass = `confidence-${reco.confidence.toLowerCase().replace("_", "-")}`;
+      const confRaw = reco.confidence || "HIGH";
+      const confidenceClass = `confidence-${confRaw.toLowerCase().replace(/_/g, "-")}`;
+      const confLabel = formatConfidence(confRaw);
       
       item.innerHTML = `
         <div class="reco-header">
@@ -440,7 +456,7 @@ response = client.chat.completions.create(
         <p class="reco-desc">${reco.description}</p>
         <div class="reco-footer">
           <span class="reco-evidence">${reco.evidence}</span>
-          <span class="badge-confidence ${confidenceClass}">${reco.confidence}</span>
+          <span class="badge-confidence ${confidenceClass}">${confLabel}</span>
         </div>
       `;
       listRecommendations.appendChild(item);
