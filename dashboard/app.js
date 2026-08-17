@@ -159,6 +159,22 @@ response = client.chat.completions.create(
     });
   }
 
+  // Dynamic Logo & Brand Click Handler
+  const btnBrandHome = document.getElementById("btn-brand-home");
+  const headerLogo = document.getElementById("header-logo");
+  if (btnBrandHome) {
+    btnBrandHome.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (headerLogo) {
+        headerLogo.style.transform = "rotate(360deg)";
+        setTimeout(() => { headerLogo.style.transform = "none"; }, 500);
+      }
+      const dashboardTabLink = document.querySelector('.nav-links a[data-tab="dashboard"]');
+      if (dashboardTabLink) dashboardTabLink.click();
+      refreshDashboard();
+    });
+  }
+
   const btnProfileAvatar = document.getElementById("btn-profile-avatar");
   if (btnProfileAvatar) {
     btnProfileAvatar.addEventListener("click", () => {
