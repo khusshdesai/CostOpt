@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "costopt"
-version = "0.1.0"
+version = "1.0.0"
 description = "Drop-in LLM API cost optimization SDK and local developer dashboard"
 readme = "README.md"
 requires-python = ">=3.10"

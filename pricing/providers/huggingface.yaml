@@ -1,50 +1,44 @@
-provider: "ollama"
+provider: "huggingface"
 currency: "USD"
 models:
-  llama3.3:70b:
+  meta-llama/llama-3.3-70b-instruct:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 128000
 
-  llama3.1:8b:
+  meta-llama/llama-3.1-8b-instruct:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 128000
 
-  llama3.2:3b:
-    input_cost_per_1m: 0.0
-    output_cost_per_1m: 0.0
-    cached_input_cost_per_1m: 0.0
-    context_window: 128000
-
-  deepseek-r1:8b:
+  deepseek-ai/deepseek-r1:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 64000
 
-  deepseek-r1:14b:
+  deepseek-ai/deepseek-r1-distill-qwen-32b:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 64000
 
-  mistral:7b:
+  qwen/qwen2.5-coder-32b-instruct:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 32768
 
-  qwen2.5-coder:7b:
+  mistralai/mistral-small-24b-instruct-2501:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
     context_window: 32768
 
-  phi3:mini:
+  google/gemma-2-27b-it:
     input_cost_per_1m: 0.0
     output_cost_per_1m: 0.0
     cached_input_cost_per_1m: 0.0
-    context_window: 4096
+    context_window: 8192

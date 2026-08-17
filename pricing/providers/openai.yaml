@@ -1,20 +1,48 @@
-provider: openai
-currency: USD
+provider: "openai"
+currency: "USD"
 effective_date: "2026-08-17"
 models:
   gpt-4o:
-    input_cost_per_1m: 5.00
-    output_cost_per_1m: 15.00
-    cached_input_cost_per_1m: 2.50
+    input_cost_per_1m: 2.50
+    output_cost_per_1m: 10.00
+    cached_input_cost_per_1m: 1.25
+
+  gpt-4o-2024-08-06:
+    input_cost_per_1m: 2.50
+    output_cost_per_1m: 10.00
+    cached_input_cost_per_1m: 1.25
+
   gpt-4o-mini:
     input_cost_per_1m: 0.150
     output_cost_per_1m: 0.600
     cached_input_cost_per_1m: 0.075
-  gpt-4:
-    input_cost_per_1m: 30.00
+
+  gpt-4o-mini-2024-07-18:
+    input_cost_per_1m: 0.150
+    output_cost_per_1m: 0.600
+    cached_input_cost_per_1m: 0.075
+
+  o1:
+    input_cost_per_1m: 15.00
     output_cost_per_1m: 60.00
-    cached_input_cost_per_1m: 30.00
-  gpt-3.5-turbo:
+    cached_input_cost_per_1m: 7.50
+
+  o1-preview:
+    input_cost_per_1m: 15.00
+    output_cost_per_1m: 60.00
+    cached_input_cost_per_1m: 7.50
+
+  o3-mini:
+    input_cost_per_1m: 1.10
+    output_cost_per_1m: 4.40
+    cached_input_cost_per_1m: 0.55
+
+  gpt-4-turbo:
+    input_cost_per_1m: 10.00
+    output_cost_per_1m: 30.00
+    cached_input_cost_per_1m: 10.00
+
+  gpt-3.5-turbo-0125:
     input_cost_per_1m: 0.50
     output_cost_per_1m: 1.50
     cached_input_cost_per_1m: 0.50

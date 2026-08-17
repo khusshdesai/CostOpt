@@ -81,11 +81,13 @@ graph TD
 ## 🚀 Quickstart
 
 ### 1. Installation
+
 ```bash
 pip install costopt
 ```
 
 ### 2. Basic Integration
+
 ```python
 from openai import OpenAI
 from costopt import CostOpt
@@ -101,16 +103,50 @@ response = client.chat.completions.create(
 ```
 
 ### 3. Launch Observability Dashboard
+
 ```bash
 costopt dashboard
 ```
+
 Open **`http://localhost:8000`** in your browser to view real-time spend analytics, trace logs, and policy rules!
+
+### 4. Integration with Popular Frameworks
+
+CostOpt wraps standard OpenAI-compatible client instances in 1 line:
+
+**LangChain**:
+```python
+from langchain_openai import ChatOpenAI
+from costopt import CostOpt
+
+# Wrap underlying client
+llm = ChatOpenAI(client=CostOpt(OpenAI()).client)
+```
+
+**LlamaIndex**:
+```python
+from llama_index.llms.openai import OpenAI as LlamaOpenAI
+from costopt import CostOpt
+
+llm = LlamaOpenAI(client=CostOpt(OpenAI()).client)
+```
+
+**FastAPI Middleware Integration**:
+```python
+from fastapi import FastAPI
+from openai import OpenAI
+from costopt import CostOpt
+
+app = FastAPI()
+ai_client = CostOpt(OpenAI())
+```
 
 ---
 
 ## 🔧 Configuration Guide
 
 ### Custom Models & User Local Overrides
+
 Track custom, fine-tuned, or local models by dropping a `.yaml` file into your project:
 
 ```yaml
@@ -122,6 +158,7 @@ models:
 ```
 
 Pass the pricing directory:
+
 ```python
 client = CostOpt(OpenAI(), pricing_dir="./my_pricing")
 ```
@@ -129,9 +166,11 @@ client = CostOpt(OpenAI(), pricing_dir="./my_pricing")
 ---
 
 ## 🛡️ Security Audit
+
 CostOpt has undergone automated penetration testing for SQL injections, CORS misconfigurations, and rate-limiting DB locks. See the full audit report at [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
 
 ---
 
 ## 📄 License
+
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

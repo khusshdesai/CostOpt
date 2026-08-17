@@ -1,12 +1,33 @@
-provider: google
-currency: USD
+provider: "google"
+currency: "USD"
 effective_date: "2026-08-17"
 models:
+  gemini-2.0-flash:
+    input_cost_per_1m: 0.10
+    output_cost_per_1m: 0.40
+    cached_input_cost_per_1m: 0.025
+
+  gemini-2.0-flash-lite:
+    input_cost_per_1m: 0.075
+    output_cost_per_1m: 0.30
+    cached_input_cost_per_1m: 0.01875
+
   gemini-1.5-pro:
     input_cost_per_1m: 1.25
     output_cost_per_1m: 5.00
     cached_input_cost_per_1m: 0.3125
+
+  gemini-1.5-pro-latest:
+    input_cost_per_1m: 1.25
+    output_cost_per_1m: 5.00
+    cached_input_cost_per_1m: 0.3125
+
   gemini-1.5-flash:
     input_cost_per_1m: 0.075
     output_cost_per_1m: 0.30
     cached_input_cost_per_1m: 0.01875
+
+  gemini-1.5-flash-8b:
+    input_cost_per_1m: 0.0375
+    output_cost_per_1m: 0.15
+    cached_input_cost_per_1m: 0.009375
