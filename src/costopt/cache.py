@@ -24,6 +24,8 @@ class SQLiteCache:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute("PRAGMA busy_timeout=5000;")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS prompt_cache (
                         prompt_hash TEXT PRIMARY KEY,
