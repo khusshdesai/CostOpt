@@ -35,6 +35,26 @@
 
 ---
 
+## 🖥️ Developer Observability Console
+
+<p align="center">
+  <img src="docs/images/dashboard_overview.png" width="100%" alt="CostOpt Developer Observability Console" />
+</p>
+
+<p align="center">
+  <em>Live System Overview displaying spend metrics, vector cache hits, optimization recommendations, and prompt interception logs.</em>
+</p>
+
+<br />
+
+<p align="center">
+  <img src="docs/images/trace_explorer.png" width="100%" alt="Full-Screen Trace Explorer" />
+</p>
+
+<p align="center">
+  <em>Dedicated Trace Explorer auditing prompt MD5 hashes, response latencies, model rerouting decisions, and status code badges.</em>
+</p>
+
 ## 🏗️ Architecture & Request Flow
 
 ```mermaid
