@@ -11,6 +11,7 @@ from costopt.cache import SQLiteCache
 from costopt.router import CostOptRouter
 from costopt.pricing import calculate_cost
 from costopt.telemetry import SQLiteTelemetryLogger
+from costopt.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger("costopt.client")
 
@@ -48,6 +49,10 @@ class CostOptCompletions:
         caller_file, caller_line = _get_caller_location()
         file_path = kwargs.pop("file_path", caller_file)
         line_number = kwargs.pop("line_number", caller_line)
+
+        # 0. Circuit Breaker Check to prevent silent runaway billing loops
+        location_key = f"{file_path}:{line_number}" if file_path else prompt_text[:30]
+        self._wrapper.circuit_breaker.check_and_record(location_key)
 
         # Concatenate message contents for prompt hash and analysis
         prompt_parts = []
@@ -342,7 +347,8 @@ class CostOpt:
         similarity_threshold: float = 1.0,
         environment: str = "production",
         application: str = "default-app",
-        region: str = "us-east-1"
+        region: str = "us-east-1",
+        circuit_breaker_max_calls: int = 15
     ):
         """
         LLM CostOpt Interceptor client wrapper.
@@ -357,6 +363,7 @@ class CostOpt:
         self.router = CostOptRouter(config_path)
         self.cache = SQLiteCache(cache_db_path, similarity_threshold)
         self.telemetry = SQLiteTelemetryLogger(telemetry_db_path)
+        self.circuit_breaker = CircuitBreaker(max_calls=circuit_breaker_max_calls)
 
         # Wrap chat endpoint
         if hasattr(self._client, "chat"):
