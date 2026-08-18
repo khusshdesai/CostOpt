@@ -13,11 +13,34 @@ def set_db_paths(telemetry_db: str, cache_db: str):
     global _TELEMETRY_DB, _CACHE_DB
     _TELEMETRY_DB = telemetry_db
     _CACHE_DB = cache_db
+    try:
+        from costopt.telemetry import SQLiteTelemetryLogger
+        from costopt.cache import SQLiteCache
+        t = SQLiteTelemetryLogger(db_path=telemetry_db)
+        t.shutdown()
+        SQLiteCache(db_path=cache_db)
+    except Exception:
+        pass
 
 def _get_connection(db_path: str):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+@router.get("/models")
+def get_available_models():
+    """Returns available supported models for simulator dropdown."""
+    from costopt.pricing import get_all_loaded_models
+    try:
+        loaded = get_all_loaded_models()
+        all_models = []
+        for provider, model_list in loaded.items():
+            all_models.extend(model_list)
+        if not all_models:
+            all_models = ["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet", "claude-3-haiku", "llama3", "deepseek-r1"]
+        return {"models": sorted(list(set(all_models)))}
+    except Exception:
+        return {"models": ["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet", "claude-3-haiku", "llama3", "deepseek-r1"]}
 
 @router.get("/overview")
 def get_overview(env: Optional[str] = None):
@@ -451,7 +474,7 @@ def get_vscode_file_stats(file_path: str):
                 rows = cursor.fetchall()
 
             total_file_calls = len(rows)
-            total_file_spend = sum(r["cost_actual"] for r in rows) if rows else 0.0
+            total_file_spend = sum(r["cost_actual"] or 0.0 for r in rows) if rows else 0.0
             
             line_stats = {}
             for r in rows:
