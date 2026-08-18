@@ -424,6 +424,41 @@ body {
   text-transform: uppercase;
 }
 
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: #0d1117;
+  color: #f0f6fc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent-indigo);
+}
+.form-group select option {
+  background: #161b22;
+  color: #f0f6fc;
+  padding: 8px;
+}
+
 .simulator-body {
   display: flex;
   flex-direction: column;
