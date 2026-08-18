@@ -50,10 +50,6 @@ class CostOptCompletions:
         file_path = kwargs.pop("file_path", caller_file)
         line_number = kwargs.pop("line_number", caller_line)
 
-        # 0. Circuit Breaker Check to prevent silent runaway billing loops
-        location_key = f"{file_path}:{line_number}" if file_path else prompt_text[:30]
-        self._wrapper.circuit_breaker.check_and_record(location_key)
-
         # Concatenate message contents for prompt hash and analysis
         prompt_parts = []
         for msg in messages:
@@ -65,6 +61,10 @@ class CostOptCompletions:
                 prompt_parts.append(str(content))
         prompt_text = "\n".join(prompt_parts)
         prompt_hash = hashlib_helper(prompt_text)
+
+        # 0. Circuit Breaker Check to prevent silent runaway billing loops
+        location_key = f"{file_path}:{line_number}" if file_path else "<unknown_location>"
+        self._wrapper.circuit_breaker.check_and_record(location_key)
 
         # Handle streaming interception if stream=True
         if kwargs.get("stream"):
