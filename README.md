@@ -1,6 +1,6 @@
 <p align="center">
   <br />
-  <img src="docs/images/costopt_logo.png" width="140" alt="CostOpt Logo Badge" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="140" alt="CostOpt Logo Badge" />
   <br />
   <br />
   <p align="center">
@@ -39,7 +39,7 @@ Most LLM gateways operate in **production infrastructure** *after* code is shipp
 ## 🖥️ Developer Observability Console
 
 <p align="center">
-  <img src="docs/images/dashboard_overview.png" width="100%" alt="CostOpt Developer Observability Console" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="100%" alt="CostOpt Developer Observability Console" />
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@ Most LLM gateways operate in **production infrastructure** *after* code is shipp
 <br />
 
 <p align="center">
-  <img src="docs/images/trace_explorer.png" width="100%" alt="Full-Screen Trace Explorer" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/trace_explorer.png" width="100%" alt="Full-Screen Trace Explorer" />
 </p>
 
 <p align="center">
