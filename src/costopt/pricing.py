@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import yaml
 
 logger = logging.getLogger("costopt.pricing")
@@ -108,8 +108,7 @@ def calculate_cost(
 def get_all_loaded_models(pricing_dir: Optional[str] = None) -> Dict[str, List[str]]:
     """Returns a dictionary mapping provider -> list of model keys loaded in configuration."""
     global _PRICING_CACHE
-    from typing import List
-    
+
     if not _PRICING_CACHE:
         target_dir = pricing_dir or DEFAULT_PRICING_DIR
         load_pricing_from_dir(target_dir)

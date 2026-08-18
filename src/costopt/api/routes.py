@@ -333,6 +333,75 @@ def simulate_sdk_call(req: SimulationRequest):
         "logs": logs
     }
 
+@router.get("/features")
+def get_feature_attribution():
+    """Returns cost-per-feature / decision breakdown and actionable auto-optimization recommendations."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    COALESCE(NULLIF(application, ''), 'default_feature') as feature,
+                    COUNT(*) as call_count,
+                    SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens,
+                    SUM(cost_actual) as total_cost,
+                    SUM(savings) as total_savings,
+                    SUM(cache_hit) as cache_hits,
+                    AVG(latency_ms) as avg_latency_ms
+                FROM telemetry
+                GROUP BY feature
+                ORDER BY total_cost DESC
+            """)
+            rows = cursor.fetchall()
+            
+            features = []
+            recommendations = []
+            
+            for r in rows:
+                f_name = r["feature"]
+                calls = r["call_count"]
+                total_cost = round(r["total_cost"] or 0.0, 4)
+                avg_cost = round(total_cost / calls, 6) if calls > 0 else 0.0
+                cache_hit_rate = round(((r["cache_hits"] or 0) / calls) * 100, 1) if calls > 0 else 0.0
+                
+                features.append({
+                    "feature": f_name,
+                    "call_count": calls,
+                    "avg_cost_per_call": avg_cost,
+                    "total_cost": total_cost,
+                    "total_savings": round(r["total_savings"] or 0.0, 4),
+                    "cache_hit_rate": cache_hit_rate,
+                    "avg_latency_ms": int(r["avg_latency_ms"] or 0)
+                })
+                
+                # Archaeological Auto-Recommendation Rules (Angle 3)
+                if calls > 10 and cache_hit_rate < 15.0 and total_cost > 0.05:
+                    recommendations.append({
+                        "feature": f_name,
+                        "type": "CACHE_OPTIMIZATION",
+                        "severity": "HIGH",
+                        "title": f"Low Cache Utilization in '{f_name}'",
+                        "description": f"Feature '{f_name}' has a {cache_hit_rate}% cache hit rate across {calls} calls. Lowering the similarity threshold or extending TTL could increase cache hits.",
+                        "estimated_monthly_savings": f"${round(total_cost * 0.40, 2)}"
+                    })
+                if total_cost > 0.10 and avg_cost > 0.002:
+                    recommendations.append({
+                        "feature": f_name,
+                        "type": "MODEL_REROUTE",
+                        "severity": "MEDIUM",
+                        "title": f"Reroute Opportunity for '{f_name}'",
+                        "description": f"Feature '{f_name}' averages ${avg_cost:.4f}/call. Adding a routing rule to direct short prompts (<500 chars) to a lighter model (e.g. gpt-4o-mini) can reduce cost by ~60%.",
+                        "estimated_monthly_savings": f"${round(total_cost * 0.60, 2)}"
+                    })
+
+            return {
+                "features": features,
+                "recommendations": recommendations
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/models")
 def get_supported_models():
     """Returns a list of all model names loaded in the pricing system."""
@@ -350,5 +419,7 @@ def get_supported_models():
         return models
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 

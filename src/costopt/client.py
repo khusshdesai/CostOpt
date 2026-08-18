@@ -3,6 +3,7 @@ import uuid
 import logging
 from typing import Any, Dict, List, Optional
 from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 
 from costopt.cache import SQLiteCache
 from costopt.router import CostOptRouter
@@ -23,9 +24,10 @@ class CostOptCompletions:
         model_requested = kwargs.get("model", "")
         messages = kwargs.get("messages", [])
         
-        # Extract environment and application metadata from kwargs
+        # Extract environment, feature / application metadata from kwargs
         environment = kwargs.pop("environment", self._wrapper.environment)
-        application = kwargs.pop("application", self._wrapper.application)
+        feature_name = kwargs.pop("feature", None)
+        application = feature_name if feature_name else kwargs.pop("application", self._wrapper.application)
         region = kwargs.pop("region", self._wrapper.region)
 
         # Concatenate message contents for prompt hash and analysis
@@ -189,6 +191,39 @@ class CostOptCompletions:
         model_used = self._wrapper.router.match_route(prompt_text, model_requested)
         kwargs["model"] = model_used
 
+        # 1. Check cache first — replay chunks locally if hit
+        cached_data = self._wrapper.cache.get(prompt_text, model_used)
+        if cached_data and "_stream_chunks" in cached_data:
+            latency_ms = int((time.time() - start_time) * 1000)
+            for raw_chunk in cached_data["_stream_chunks"]:
+                try:
+                    yield ChatCompletionChunk.model_validate(raw_chunk)
+                except Exception:
+                    pass
+            self._wrapper.telemetry.log({
+                "request_id": str(uuid.uuid4()),
+                "provider": self._wrapper.provider,
+                "model_requested": model_requested,
+                "model_used": model_used,
+                "input_tokens": cached_data.get("_input_tokens", 0),
+                "output_tokens": cached_data.get("_output_tokens", 0),
+                "latency_ms": latency_ms,
+                "status_code": 200,
+                "success": True,
+                "error_type": None,
+                "cache_hit": True,
+                "cost_original": cached_data.get("_cost_original", 0.0),
+                "cost_actual": 0.0,
+                "savings": cached_data.get("_cost_original", 0.0),
+                "prompt_hash": prompt_hash,
+                "environment": environment,
+                "application": application,
+                "region": region,
+                "retry_count": 0
+            })
+            return
+
+        # 2. Live API call with fallback/retry
         try:
             stream_gen = self._original.create(*args, **kwargs)
         except Exception as e:
@@ -216,16 +251,26 @@ class CostOptCompletions:
         # Use tiktoken for accurate input token count
         try:
             import tiktoken
-            enc = tiktoken.encoding_for_model("gpt-4o")  # compatible encoding for token counting
+            enc = tiktoken.encoding_for_model("gpt-4o")
             input_tokens = len(enc.encode(prompt_text))
         except Exception:
             input_tokens = len(prompt_text.split())
 
         output_tokens = len(accumulated_chunks)
-
         cost_orig = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False)
         cost_act = calculate_cost(self._wrapper.provider, model_used, input_tokens, output_tokens, cache_hit=False)
         savings = max(0.0, round(cost_orig - cost_act, 6))
+
+        # 3. Write chunks to cache for future hits
+        try:
+            self._wrapper.cache.set(prompt_text, model_used, {
+                "_stream_chunks": [c.model_dump() for c in accumulated_chunks],
+                "_input_tokens": input_tokens,
+                "_output_tokens": output_tokens,
+                "_cost_original": cost_orig,
+            })
+        except Exception as ce:
+            logger.error(f"CostOpt stream: Failed to write cache: {ce}")
 
         self._wrapper.telemetry.log({
             "request_id": str(uuid.uuid4()),

@@ -27,7 +27,8 @@ class CostOptRouter:
 
                 routing_conf = config.get("routing", {})
                 self.rules = routing_conf.get("rules", [])
-                self.fallbacks = routing_conf.get("fallbacks", {})
+                raw_fallbacks = routing_conf.get("fallbacks", {})
+                self.fallbacks = {k.lower(): v for k, v in raw_fallbacks.items()}
                 logger.info(f"Loaded {len(self.rules)} routing rules and fallbacks for {len(self.fallbacks)} models.")
         except Exception as e:
             logger.error(f"Error loading router configuration from {self.config_path}: {e}")

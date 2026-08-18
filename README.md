@@ -12,29 +12,26 @@
 
 <p align="center">
   <a href="https://github.com/khusshdesai/CostOpt/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square" alt="Build Status"></a>
-  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg?style=flat-square" alt="Python Versions"></a>
-  <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square" alt="Code Style"></a>
-</p>
+# CostOpt — Cost-Aware Local Development & Feature-Level LLM Cost Attribution ⚡
 
-<p align="center">
-  <img src="https://img.shields.io/badge/OpenAI-supported-412991?style=for-the-badge&logo=openai&logoColor=white" />
-  <img src="https://img.shields.io/badge/Anthropic-supported-D97706?style=for-the-badge&logo=anthropic&logoColor=white" />
-  <img src="https://img.shields.io/badge/Google_Gemini-supported-4285F4?style=for-the-badge&logo=google&logoColor=white" />
-  <img src="https://img.shields.io/badge/Hugging_Face-supported-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" />
-  <img src="https://img.shields.io/badge/Ollama_(Local)-supported-000000?style=for-the-badge&logo=ollama&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-supported-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-</p>
+[![PyPI Version](https://img.shields.io/pypi/v/costopt?color=blue&style=flat-square)](https://pypi.org/project/costopt/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/khusshdesai/CostOpt/actions/workflows/ci.yml/badge.svg)](https://github.com/khusshdesai/CostOpt/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/downloads/)
+
+> **Don't wait for a $500 monthly cloud bill to figure out where your LLM budget went.**
+> **CostOpt puts real-time cost attribution directly into your local development loop—giving you feature-level spend visibility, lexical response caching, and automated optimization recommendations before code ships.**
 
 ---
 
-## 📌 Key Capabilities
+### 💡 Why CostOpt?
 
-- **Zero-Churn 1-Line SDK Interception**: Drop-in wrapper patches standard completion clients (`client = CostOpt(OpenAI())`) with zero modifications to existing calling code.
-- **Automated Cost Optimization**: Intelligent intent detection automatically routes lightweight queries (like sentiment or text formatting) from expensive models (`gpt-4o`) to low-cost models (`gpt-4o-mini` or local `llama3`), preserving response quality while cutting spend.
-- **Lexical Similarity Cache**: High-speed token & character n-gram similarity cache returns **sub-2ms latency, $0.00 cost** on repeated or similar prompts.
-- **Local & Offline Model Support**: Seamlessly route to local **Ollama** models (`llama3`, `mistral`, `deepseek-r1`, `qwen2.5`) for 100% free offline execution.
-- **100% Private Local Telemetry**: Logs financial metrics, latency distributions, and MD5 trace hashes to a local SQLite database—zero data shared with third-party servers.
+Most LLM gateways operate in **production infrastructure** *after* code is shipped. CostOpt operates in your **local development loop**:
+
+1. **Feature-Level Cost Attribution**: Group LLM calls by feature or component (`feature="rag_summarizer"`) to track feature unit economics before shipping.
+2. **Local Lexical Cache**: High-speed token & n-gram similarity cache returning **sub-2ms latency and $0.00 cost** on repeated prompts.
+3. **Automated Archaeological Recommendations**: Auto-detects cache under-utilization and model reroute opportunities directly from your usage patterns.
+4. **Zero-Churn 1-Line SDK Interception**: Patches standard OpenAI client calls with zero architectural refactoring.
 
 ---
 
