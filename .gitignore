@@ -88,3 +88,6 @@ build/
 
 # Local test and development scripts
 scripts/
+
+# VS Code Extension dependencies
+vscode-extension/node_modules/
