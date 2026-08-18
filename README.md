@@ -30,8 +30,9 @@ Most LLM gateways operate in **production infrastructure** *after* code is shipp
 
 1. **Feature-Level Cost Attribution**: Group LLM calls by feature or component (`feature="rag_summarizer"`) to track feature unit economics before shipping.
 2. **Local Lexical Cache**: High-speed token & n-gram similarity cache returning **sub-2ms latency and $0.00 cost** on repeated prompts.
-3. **Automated Archaeological Recommendations**: Auto-detects cache under-utilization and model reroute opportunities directly from your usage patterns.
-4. **Zero-Churn 1-Line SDK Interception**: Patches standard OpenAI client calls with zero architectural refactoring.
+3. **Silent Loop Circuit Breaker**: Detects rapid call loops (>15 calls in 30s) and trips `CostOptCircuitBreakerError` locally to stop runaway billing leaks before they happen.
+4. **Zero-Downtime Outage Failover**: Automatically reroutes queries to multi-provider fallbacks (`gpt-4o` → `claude-3-5-sonnet` or local `ollama/llama3`) when primary providers return 429 Rate Limits or 503 Outages.
+5. **Zero-Churn 1-Line SDK Interception**: Patches standard OpenAI client calls with zero architectural refactoring.
 
 ---
 
