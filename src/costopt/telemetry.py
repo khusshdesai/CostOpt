@@ -58,11 +58,24 @@ class SQLiteTelemetryLogger:
                         environment TEXT NOT NULL,
                         application TEXT NOT NULL,
                         region TEXT NOT NULL,
-                        retry_count INTEGER NOT NULL
+                        retry_count INTEGER NOT NULL,
+                        file_path TEXT DEFAULT '',
+                        line_number INTEGER DEFAULT 0
                     )
                 """)
+                # Safe migrations for existing DBs
+                try:
+                    cursor.execute("ALTER TABLE telemetry ADD COLUMN file_path TEXT DEFAULT ''")
+                except Exception:
+                    pass
+                try:
+                    cursor.execute("ALTER TABLE telemetry ADD COLUMN line_number INTEGER DEFAULT 0")
+                except Exception:
+                    pass
+
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_time ON telemetry (timestamp)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_success ON telemetry (success)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_filepath ON telemetry (file_path)")
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to initialize telemetry database: {e}")
@@ -107,6 +120,9 @@ class SQLiteTelemetryLogger:
 
     def _flush_batch(self, batch: List[Dict[str, Any]]):
         """Performs bulk insert into the telemetry database."""
+        for r in batch:
+            r.setdefault("file_path", "")
+            r.setdefault("line_number", 0)
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -115,12 +131,14 @@ class SQLiteTelemetryLogger:
                         timestamp, request_id, provider, model_requested, model_used,
                         input_tokens, output_tokens, latency_ms, status_code, success,
                         error_type, cache_hit, cost_original, cost_actual, savings,
-                        prompt_hash, environment, application, region, retry_count
+                        prompt_hash, environment, application, region, retry_count,
+                        file_path, line_number
                     ) VALUES (
                         :timestamp, :request_id, :provider, :model_requested, :model_used,
                         :input_tokens, :output_tokens, :latency_ms, :status_code, :success,
                         :error_type, :cache_hit, :cost_original, :cost_actual, :savings,
-                        :prompt_hash, :environment, :application, :region, :retry_count
+                        :prompt_hash, :environment, :application, :region, :retry_count,
+                        :file_path, :line_number
                     )
                 """, batch)
                 conn.commit()

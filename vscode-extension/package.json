@@ -1,0 +1,109 @@
+{
+  "name": "costopt-vscode",
+  "displayName": "CostOpt — Cost Intelligence While You Code",
+  "description": "Developer-native LLM cost intelligence directly inside VS Code. Live CodeLens, hover cost panels, feature spend attribution, and spend forecasting.",
+  "version": "0.1.0",
+  "publisher": "khusshdesai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/khusshdesai/CostOpt.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "llm",
+    "cost",
+    "openai",
+    "anthropic",
+    "gemini",
+    "finops",
+    "costopt"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onLanguage:javascript",
+    "onLanguage:typescript"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "costopt.showCostSummary",
+        "title": "CostOpt: Show Cost Summary"
+      },
+      {
+        "command": "costopt.showCurrentFileCost",
+        "title": "CostOpt: Show Current File Cost"
+      },
+      {
+        "command": "costopt.showFeatureCosts",
+        "title": "CostOpt: Show Feature Costs"
+      },
+      {
+        "command": "costopt.showCostForecast",
+        "title": "CostOpt: Show Cost Forecast"
+      },
+      {
+        "command": "costopt.refreshTelemetry",
+        "title": "CostOpt: Refresh Telemetry"
+      },
+      {
+        "command": "costopt.openLocalDashboard",
+        "title": "CostOpt: Open Local Dashboard"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "costopt-explorer",
+          "title": "CostOpt",
+          "icon": "$(symbol-numeric)"
+        }
+      ]
+    },
+    "views": {
+      "costopt-explorer": [
+        {
+          "id": "costopt-sidebar",
+          "name": "Cost Intelligence"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CostOpt",
+      "properties": {
+        "costopt.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Local CostOpt service API endpoint"
+        },
+        "costopt.budget": {
+          "type": "number",
+          "default": 50.0,
+          "description": "Configured monthly LLM budget limit in USD"
+        },
+        "costopt.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable CostOpt VS Code inline cost intelligence"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  }
+}

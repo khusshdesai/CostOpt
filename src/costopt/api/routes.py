@@ -402,23 +402,233 @@ def get_feature_attribution():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/models")
-def get_supported_models():
-    """Returns a list of all model names loaded in the pricing system."""
+@router.get("/vscode/health")
+def get_vscode_health():
+    """Health check endpoint for VS Code extension connectivity."""
+    return {"status": "ok", "service": "CostOpt Local API", "version": "0.1.1"}
+
+@router.get("/vscode/file-stats")
+def get_vscode_file_stats(file_path: str):
+    """Returns telemetry statistics aggregated by line number for a specific source file."""
     try:
-        from costopt.pricing import get_all_loaded_models
-        raw_data = get_all_loaded_models()
-        models = []
-        for provider, model_list in raw_data.items():
-            for m in model_list:
-                models.append({
-                    "provider": provider,
-                    "model": m,
-                    "label": f"{m} ({provider})"
+        norm_path = file_path.replace("\\", "/").lower()
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            # Fetch all matching telemetry records for this file (supporting fuzzy relative/absolute matching)
+            cursor.execute("""
+                SELECT 
+                    line_number,
+                    model_requested,
+                    model_used,
+                    input_tokens,
+                    output_tokens,
+                    cost_actual,
+                    latency_ms,
+                    cache_hit,
+                    timestamp
+                FROM telemetry
+                WHERE LOWER(REPLACE(file_path, '\\', '/')) LIKE '%' || ? OR ? LIKE '%' || LOWER(REPLACE(file_path, '\\', '/'))
+            """, (norm_path, norm_path))
+            rows = cursor.fetchall()
+
+            if not rows:
+                # Fallback: Query all logs if no exact file match, for global file-agnostic CodeLens simulation
+                cursor.execute("""
+                    SELECT 
+                        line_number,
+                        model_requested,
+                        model_used,
+                        input_tokens,
+                        output_tokens,
+                        cost_actual,
+                        latency_ms,
+                        cache_hit,
+                        timestamp
+                    FROM telemetry
+                    ORDER BY timestamp DESC
+                    LIMIT 200
+                """)
+                rows = cursor.fetchall()
+
+            total_file_calls = len(rows)
+            total_file_spend = sum(r["cost_actual"] for r in rows) if rows else 0.0
+            
+            line_stats = {}
+            for r in rows:
+                line = r["line_number"] or 1
+                if line not in line_stats:
+                    line_stats[line] = {
+                        "line_number": line,
+                        "call_count": 0,
+                        "total_cost": 0.0,
+                        "total_input_tokens": 0,
+                        "total_output_tokens": 0,
+                        "total_latency_ms": 0,
+                        "cache_hits": 0,
+                        "model": r["model_used"] or r["model_requested"]
+                    }
+                line_stats[line]["call_count"] += 1
+                line_stats[line]["total_cost"] += (r["cost_actual"] or 0.0)
+                line_stats[line]["total_input_tokens"] += (r["input_tokens"] or 0)
+                line_stats[line]["total_output_tokens"] += (r["output_tokens"] or 0)
+                line_stats[line]["total_latency_ms"] += (r["latency_ms"] or 0)
+                if r["cache_hit"]:
+                    line_stats[line]["cache_hits"] += 1
+
+            lines_output = []
+            for line, s in line_stats.items():
+                cnt = s["call_count"]
+                avg_cost = s["total_cost"] / cnt if cnt > 0 else 0.0
+                avg_in = s["total_input_tokens"] // cnt if cnt > 0 else 0
+                avg_out = s["total_output_tokens"] // cnt if cnt > 0 else 0
+                avg_lat = s["total_latency_ms"] // cnt if cnt > 0 else 0
+                
+                lines_output.append({
+                    "line_number": line,
+                    "model": s["model"],
+                    "call_count": cnt,
+                    "total_cost": round(s["total_cost"], 6),
+                    "avg_cost_per_call": round(avg_cost, 6),
+                    "avg_input_tokens": avg_in,
+                    "avg_output_tokens": avg_out,
+                    "avg_latency_ms": avg_lat,
+                    "cache_hits": s["cache_hits"]
                 })
-        return models
+
+            return {
+                "file_path": file_path,
+                "total_file_calls": total_file_calls,
+                "total_file_spend": round(total_file_spend, 4),
+                "line_stats": lines_output
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/vscode/forecast")
+def get_vscode_forecast(budget: float = 50.0):
+    """Calculates real-time daily spend, projected monthly spend, and budget remaining."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            
+            # Total count check
+            cursor.execute("SELECT COUNT(*), MIN(timestamp), MAX(timestamp) FROM telemetry")
+            count_row = cursor.fetchone()
+            total_calls = count_row[0] or 0
+            
+            if total_calls == 0:
+                return {
+                    "has_enough_data": False,
+                    "message": "CostOpt is connected, but no LLM usage has been recorded yet.",
+                    "total_spend": 0.0,
+                    "spend_today": 0.0,
+                    "daily_average": 0.0,
+                    "projected_monthly": 0.0,
+                    "budget": budget,
+                    "budget_remaining": budget
+                }
+
+            # Today's spend
+            cursor.execute("""
+                SELECT SUM(cost_actual)
+                FROM telemetry
+                WHERE strftime('%Y-%m-%d', timestamp) = strftime('%Y-%m-%d', 'now')
+            """)
+            today_row = cursor.fetchone()
+            spend_today = round(today_row[0] or 0.0, 4)
+
+            # Daily average over available history (up to last 30 days)
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT strftime('%Y-%m-%d', timestamp)) as active_days,
+                    SUM(cost_actual) as total_spend
+                FROM telemetry
+            """)
+            avg_row = cursor.fetchone()
+            active_days = max(1, avg_row["active_days"] or 1)
+            total_spend = avg_row["total_spend"] or 0.0
+            
+            daily_avg = total_spend / active_days
+            projected_monthly = daily_avg * 30.0
+            remaining_budget = max(0.0, budget - projected_monthly)
+
+            return {
+                "has_enough_data": True,
+                "total_spend": round(total_spend, 4),
+                "spend_today": spend_today,
+                "daily_average": round(daily_avg, 4),
+                "projected_monthly": round(projected_monthly, 2),
+                "budget": round(budget, 2),
+                "budget_remaining": round(remaining_budget, 2),
+                "over_budget": projected_monthly > budget
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/vscode/warnings")
+def get_vscode_warnings(budget: float = 50.0):
+    """Generates developer-oriented cost warnings for VS Code Problems panel and sidebar."""
+    warnings = []
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            
+            # 1. Budget overrun warning
+            forecast = get_vscode_forecast(budget=budget)
+            if forecast.get("has_enough_data") and forecast.get("over_budget"):
+                warnings.append({
+                    "id": "WARN_BUDGET_OVERRUN",
+                    "severity": "WARNING",
+                    "title": "Projected Monthly Spend Exceeds Budget",
+                    "message": f"Projected spend (${forecast['projected_monthly']}/mo) exceeds configured budget of ${budget:.2f}.",
+                    "code": "COSTOPT001"
+                })
+
+            # 2. High feature cost concentration warning
+            cursor.execute("""
+                SELECT 
+                    COALESCE(NULLIF(application, ''), 'default_feature') as feature,
+                    SUM(cost_actual) as feature_spend,
+                    (SELECT SUM(cost_actual) FROM telemetry) as total_spend
+                FROM telemetry
+                GROUP BY feature
+                HAVING total_spend > 0
+                ORDER BY feature_spend DESC
+                LIMIT 1
+            """)
+            top_feat = cursor.fetchone()
+            if top_feat and top_feat["total_spend"] > 0:
+                pct = (top_feat["feature_spend"] / top_feat["total_spend"]) * 100.0
+                if pct >= 50.0 and top_feat["feature_spend"] > 0.05:
+                    warnings.append({
+                        "id": "WARN_FEATURE_CONCENTRATION",
+                        "severity": "INFO",
+                        "title": f"Feature Spend Concentration in '{top_feat['feature']}'",
+                        "message": f"Feature '{top_feat['feature']}' is responsible for {round(pct, 1)}% of total LLM spend (${round(top_feat['feature_spend'], 4)}).",
+                        "code": "COSTOPT002"
+                    })
+
+            # 3. Recent input token drift
+            cursor.execute("""
+                SELECT AVG(input_tokens) as avg_tokens
+                FROM telemetry
+                ORDER BY timestamp DESC
+                LIMIT 20
+            """)
+            recent_tokens = cursor.fetchone()
+            if recent_tokens and recent_tokens["avg_tokens"] and recent_tokens["avg_tokens"] > 3000:
+                warnings.append({
+                    "id": "WARN_HIGH_INPUT_TOKENS",
+                    "severity": "WARNING",
+                    "title": "High Average Input Context Length",
+                    "message": f"Recent LLM calls average {int(recent_tokens['avg_tokens'])} input tokens per request. Consider truncating context or enabling local prompt caching.",
+                    "code": "COSTOPT003"
+                })
+
+            return warnings
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 

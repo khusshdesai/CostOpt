@@ -140,6 +140,31 @@ ai_client = CostOpt(OpenAI())
 
 ---
 
+## 🔌 VS Code Extension — Cost Intelligence While You Code
+
+CostOpt includes a native VS Code Extension that brings real-time LLM cost intelligence directly into your editor:
+
+1. **Install CostOpt & VS Code Extension**:
+   ```bash
+   pip install costopt
+   ```
+   Install `CostOpt` from the VS Code Extensions Marketplace or load `vscode-extension/`.
+
+2. **Start Local Service**:
+   ```bash
+   costopt dashboard
+   ```
+
+3. **Make LLM Calls**:
+   As you call your LLM code locally or run test suites, CostOpt displays:
+   - **Live CodeLens**: Line-level cost (`CostOpt: ~$0.012 / request | Avg tokens: 3,421 | Calls: 184`) directly above your code.
+   - **Hover Panels**: Rich, compact cost breakdowns when hovering over `client.chat.completions.create()`.
+   - **Status Bar Item**: Compact daily spend tracker (`CostOpt: $8.42 today`).
+   - **Feature Attribution Sidebar**: Breakdown of spend grouped by feature (`@costopt.track("customer_support")` or `feature="summarizer"`).
+   - **Cost Forecast & Warnings**: Spend forecasting and cost drift warnings directly in the Problems panel.
+
+---
+
 ## 🔧 Configuration Guide
 
 ### Custom Models & User Local Overrides

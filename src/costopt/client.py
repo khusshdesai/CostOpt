@@ -1,3 +1,5 @@
+import os
+import inspect
 import time
 import uuid
 import logging
@@ -11,6 +13,18 @@ from costopt.pricing import calculate_cost
 from costopt.telemetry import SQLiteTelemetryLogger
 
 logger = logging.getLogger("costopt.client")
+
+def _get_caller_location() -> tuple:
+    """Inspects stack frames to pinpoint user code file path and line number."""
+    try:
+        stack = inspect.stack()
+        for frame_info in stack[2:]:
+            filename = frame_info.filename
+            if "costopt" not in filename and "site-packages" not in filename and "importlib" not in filename:
+                return os.path.abspath(filename), frame_info.lineno
+    except Exception:
+        pass
+    return "", 0
 
 class CostOptCompletions:
     def __init__(self, original_completions: Any, wrapper: "CostOpt"):
@@ -30,6 +44,11 @@ class CostOptCompletions:
         application = feature_name if feature_name else kwargs.pop("application", self._wrapper.application)
         region = kwargs.pop("region", self._wrapper.region)
 
+        # Automatic caller source location extraction
+        caller_file, caller_line = _get_caller_location()
+        file_path = kwargs.pop("file_path", caller_file)
+        line_number = kwargs.pop("line_number", caller_line)
+
         # Concatenate message contents for prompt hash and analysis
         prompt_parts = []
         for msg in messages:
@@ -44,7 +63,7 @@ class CostOptCompletions:
 
         # Handle streaming interception if stream=True
         if kwargs.get("stream"):
-            return self._handle_stream(start_time, prompt_text, prompt_hash, model_requested, environment, application, region, args, kwargs)
+            return self._handle_stream(start_time, prompt_text, prompt_hash, model_requested, environment, application, region, file_path, line_number, args, kwargs)
 
         # 2. Check Cache
         cached_data = self._wrapper.cache.get(prompt_text, model_requested)
@@ -82,7 +101,9 @@ class CostOptCompletions:
                     "environment": environment,
                     "application": application,
                     "region": region,
-                    "retry_count": 0
+                    "retry_count": 0,
+                    "file_path": file_path,
+                    "line_number": line_number
                 })
                 return chat_completion
             except Exception as e:
@@ -178,7 +199,9 @@ class CostOptCompletions:
             "environment": environment,
             "application": application,
             "region": region,
-            "retry_count": retry_count
+            "retry_count": retry_count,
+            "file_path": file_path,
+            "line_number": line_number
         })
 
         if not success and last_exception:
@@ -186,7 +209,7 @@ class CostOptCompletions:
 
         return response
 
-    def _handle_stream(self, start_time, prompt_text, prompt_hash, model_requested, environment, application, region, args, kwargs):
+    def _handle_stream(self, start_time, prompt_text, prompt_hash, model_requested, environment, application, region, file_path, line_number, args, kwargs):
         """Generates stream chunks while recording telemetry when stream finishes."""
         model_used = self._wrapper.router.match_route(prompt_text, model_requested)
         kwargs["model"] = model_used
@@ -219,7 +242,9 @@ class CostOptCompletions:
                 "environment": environment,
                 "application": application,
                 "region": region,
-                "retry_count": 0
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number
             })
             return
 
@@ -291,7 +316,9 @@ class CostOptCompletions:
             "environment": environment,
             "application": application,
             "region": region,
-            "retry_count": 0
+            "retry_count": 0,
+            "file_path": file_path,
+            "line_number": line_number
         })
 
 
