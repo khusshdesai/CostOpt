@@ -600,9 +600,9 @@ response = client.chat.completions.create(
       simTerminal.scrollTop = simTerminal.scrollHeight;
 
       // Update simulator cost metrics
-      simCostOrig.textContent = `$${data.cost_original.toFixed(4)}`;
-      simCostAct.textContent = `$${data.cost_actual.toFixed(4)}`;
-      simSavings.textContent = `$${data.savings.toFixed(4)}`;
+      if (simCostOrig) simCostOrig.textContent = `$${data.cost_original.toFixed(4)}`;
+      if (simCostAct) simCostAct.textContent = `$${data.cost_actual.toFixed(4)}`;
+      if (simSavings) simSavings.textContent = `$${data.savings.toFixed(4)}`;
 
       // Update general observability elements
       refreshDashboard();
@@ -622,14 +622,16 @@ response = client.chat.completions.create(
     try {
       const res = await fetch(`${API_BASE}/models`);
       if (res.ok) {
-        const models = await res.json();
-        if (simModel) {
+        const data = await res.json();
+        const modelList = Array.isArray(data) ? data : (data.models || []);
+        if (simModel && modelList.length > 0) {
           simModel.innerHTML = "";
-          models.forEach(m => {
+          modelList.forEach(m => {
             const opt = document.createElement("option");
-            // Set value to target model name
-            opt.value = m.model;
-            opt.textContent = `${m.model} (${m.provider})`;
+            const modelName = typeof m === "string" ? m : (m.model || m.name);
+            const providerName = typeof m === "object" && m.provider ? ` (${m.provider})` : "";
+            opt.value = modelName;
+            opt.textContent = `${modelName}${providerName}`;
             simModel.appendChild(opt);
           });
         }
