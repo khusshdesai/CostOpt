@@ -2,8 +2,9 @@
   "name": "costopt-vscode",
   "displayName": "CostOpt — Cost Intelligence While You Code",
   "description": "Developer-native LLM cost intelligence directly inside VS Code. Live CodeLens, hover cost panels, feature spend attribution, and spend forecasting.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "khusshdesai",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/khusshdesai/CostOpt.git"
