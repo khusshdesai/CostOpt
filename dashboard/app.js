@@ -537,13 +537,11 @@ response = client.chat.completions.create(
 
   // SDK Simulator execution with custom typewriter logs
   async function executeSimulation() {
-    const prompt = simPrompt.value.strip ? simPrompt.value.strip() : simPrompt.value.trim();
-    const model = simModel.value;
-
+    let prompt = simPrompt.value ? simPrompt.value.trim() : "";
     if (!prompt) {
-      alert("Please enter a mock prompt for the simulator.");
-      return;
+      prompt = "Please classify this review: 'The delivery was very slow but customer service was helpful'";
     }
+    const model = simModel.value || "gpt-4o";
 
     // Toggle active state
     simStatusBadge.textContent = "INTERCEPTING";
