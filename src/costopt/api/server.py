@@ -31,11 +31,18 @@ DASHBOARD_DIR = os.path.abspath(
 )
 
 if os.path.exists(DASHBOARD_DIR):
-    app.mount("/static", StaticFiles(directory=DASHBOARD_DIR), name="static")
+    class NoCacheStaticFiles(StaticFiles):
+        def is_not_modified(self, response_headers, request_headers) -> bool:
+            return False
+
+    app.mount("/static", NoCacheStaticFiles(directory=DASHBOARD_DIR), name="static")
 
     @app.get("/")
     def read_index():
-        return FileResponse(os.path.join(DASHBOARD_DIR, "index.html"))
+        return FileResponse(
+            os.path.join(DASHBOARD_DIR, "index.html"),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
 else:
     @app.get("/")
     def read_root():

@@ -91,3 +91,4 @@ scripts/
 
 # VS Code Extension dependencies
 vscode-extension/node_modules/
+*.vsix
