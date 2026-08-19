@@ -16,6 +16,10 @@
   <img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple.svg?style=flat-square" alt="VS Code Version">
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_dashboard.png" width="900" alt="CostOpt Dashboard Console" />
+</p>
+
 ---
 
 ## 🔌 1-Line Zero-Churn Integration
