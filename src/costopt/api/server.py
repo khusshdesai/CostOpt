@@ -48,16 +48,36 @@ else:
     def read_root():
         return {"status": "running", "message": "Dashboard assets directory not found. API endpoints are operational."}
 
+def is_port_in_use(host: str, port: int) -> bool:
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) == 0
+
 def start_server(
     host: str = "127.0.0.1",
     port: int = 8000,
     telemetry_db: str = "costopt_telemetry.db",
     cache_db: str = "costopt_cache.db"
 ) -> None:
-    """Configures database connections and launches the API/Dashboard server."""
+    """Configures database connections and launches the API/Dashboard server with automatic port detection."""
     set_db_paths(telemetry_db, cache_db)
-    print(f"Starting LLM CostOpt Dashboard on http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    
+    target_port = port
+    if is_port_in_use(host, target_port):
+        print(f"Notice: Port {target_port} is already in use by an active CostOpt server instance.")
+        print(f"Connecting to running server at http://{host}:{target_port}...")
+        # Check if user passed a custom port or if default 8000 is occupied
+        for alt_port in range(port + 1, port + 10):
+            if not is_port_in_use(host, alt_port):
+                target_port = alt_port
+                break
+        if target_port == port:
+            print(f"CostOpt Dashboard is already live at http://{host}:{port}")
+            return
+
+    print(f"Starting LLM CostOpt Dashboard on http://{host}:{target_port}")
+    uvicorn.run(app, host=host, port=target_port)
+
 
 if __name__ == "__main__":
     start_server()
