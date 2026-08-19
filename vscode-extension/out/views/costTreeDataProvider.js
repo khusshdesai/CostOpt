@@ -51,38 +51,44 @@ class CostTreeDataProvider {
         }
         if (element.contextValue === 'section_forecast') {
             const forecast = await this.apiClient.getForecast();
-            if (!forecast || !forecast.has_enough_data) {
+            if (!forecast) {
                 return [
-                    new CostTreeItem('Status', vscode.TreeItemCollapsibleState.None, 'Not enough usage data for forecast', 'info')
+                    new CostTreeItem('Service Status', vscode.TreeItemCollapsibleState.None, 'Connecting to local costopt dashboard...', 'loading~spin')
                 ];
             }
+            const totalSpend = forecast.total_spend ?? 0.0;
+            const spendToday = forecast.spend_today ?? 0.0;
+            const dailyAvg = forecast.daily_average ?? 0.0;
+            const projMonthly = forecast.projected_monthly ?? 0.0;
+            const limit = forecast.budget ?? 50.0;
+            const remaining = forecast.budget_remaining ?? limit;
             return [
-                new CostTreeItem('Current Spend', vscode.TreeItemCollapsibleState.None, `$${forecast.total_spend.toFixed(4)}`, 'account'),
-                new CostTreeItem('Spend Today', vscode.TreeItemCollapsibleState.None, `$${forecast.spend_today.toFixed(4)}`, 'history'),
-                new CostTreeItem('Daily Average', vscode.TreeItemCollapsibleState.None, `$${forecast.daily_average.toFixed(4)}`, 'calculator'),
-                new CostTreeItem('Projected Monthly', vscode.TreeItemCollapsibleState.None, `$${forecast.projected_monthly.toFixed(2)}`, forecast.over_budget ? 'error' : 'pulse'),
-                new CostTreeItem('Budget Limit', vscode.TreeItemCollapsibleState.None, `$${forecast.budget.toFixed(2)}`, 'target'),
-                new CostTreeItem('Budget Remaining', vscode.TreeItemCollapsibleState.None, `$${forecast.budget_remaining.toFixed(2)}`, 'pass')
+                new CostTreeItem('Current Spend', vscode.TreeItemCollapsibleState.None, `$${totalSpend.toFixed(4)}`, 'dashboard'),
+                new CostTreeItem('Spend Today', vscode.TreeItemCollapsibleState.None, `$${spendToday.toFixed(4)}`, 'history'),
+                new CostTreeItem('Daily Average', vscode.TreeItemCollapsibleState.None, `$${dailyAvg.toFixed(4)}`, 'graph-line'),
+                new CostTreeItem('Projected Monthly', vscode.TreeItemCollapsibleState.None, `$${projMonthly.toFixed(2)}`, projMonthly > limit ? 'error' : 'pulse'),
+                new CostTreeItem('Budget Limit', vscode.TreeItemCollapsibleState.None, `$${limit.toFixed(2)}`, 'shield'),
+                new CostTreeItem('Budget Remaining', vscode.TreeItemCollapsibleState.None, `$${remaining.toFixed(2)}`, 'pass-filled')
             ];
         }
         if (element.contextValue === 'section_features') {
             const featRes = await this.apiClient.getFeatures();
             if (!featRes || !featRes.features || featRes.features.length === 0) {
                 return [
-                    new CostTreeItem('No features recorded', vscode.TreeItemCollapsibleState.None, 'Pass feature="name" in client.create()', 'info')
+                    new CostTreeItem('No features tracked yet', vscode.TreeItemCollapsibleState.None, 'Pass feature="name" in client.create()', 'info')
                 ];
             }
             const totalSpend = featRes.features.reduce((acc, f) => acc + f.total_cost, 0);
             return featRes.features.map(f => {
                 const pct = totalSpend > 0 ? ((f.total_cost / totalSpend) * 100).toFixed(1) : '0';
-                return new CostTreeItem(f.feature, vscode.TreeItemCollapsibleState.None, `$${f.total_cost.toFixed(4)} (${pct}% | ${f.call_count} calls)`, 'symbol-method');
+                return new CostTreeItem(f.feature, vscode.TreeItemCollapsibleState.None, `$${f.total_cost.toFixed(4)} (${pct}% | ${f.call_count} calls)`, 'ruby');
             });
         }
         if (element.contextValue === 'section_warnings') {
             const warnings = await this.apiClient.getWarnings();
             if (!warnings || warnings.length === 0) {
                 return [
-                    new CostTreeItem('All systems nominal', vscode.TreeItemCollapsibleState.None, 'No cost drift warnings detected', 'check-all')
+                    new CostTreeItem('Spend Nominal', vscode.TreeItemCollapsibleState.None, 'No budget overruns or runaway loops', 'shield-check')
                 ];
             }
             return warnings.map(w => new CostTreeItem(w.title, vscode.TreeItemCollapsibleState.None, w.message, w.severity === 'WARNING' ? 'warning' : 'info'));

@@ -5,9 +5,9 @@ import yaml
 
 logger = logging.getLogger("costopt.pricing")
 
-# Dynamic cache of pricing data
-# Structure: { provider_name: { model_name: { input_cost_per_1m, output_cost_per_1m, cached_input_cost_per_1m } } }
-_PRICING_CACHE: Dict[str, Dict[str, Dict[str, float]]] = {}
+# Dynamic cache of pricing data keyed by pricing_dir path
+# Structure: { pricing_dir: { provider_name: { model_name: { input_cost_per_1m, output_cost_per_1m, cached_input_cost_per_1m } } } }
+_PRICING_CACHE: Dict[str, Dict[str, Dict[str, Dict[str, float]]]] = {}
 
 # Default pricing path relative to this script
 DEFAULT_PRICING_DIR = os.path.abspath(
@@ -17,13 +17,16 @@ DEFAULT_PRICING_DIR = os.path.abspath(
 def load_pricing_from_dir(pricing_dir: str) -> None:
     """Loads all yaml pricing configurations from a directory into memory cache."""
     global _PRICING_CACHE
-    if not os.path.exists(pricing_dir):
-        logger.warning(f"Pricing directory '{pricing_dir}' does not exist. Caching skipped.")
+    target_dir = os.path.abspath(pricing_dir)
+    if not os.path.exists(target_dir):
+        logger.warning(f"Pricing directory '{target_dir}' does not exist. Caching skipped.")
         return
 
-    for filename in os.listdir(pricing_dir):
+    _PRICING_CACHE[target_dir] = {}
+
+    for filename in os.listdir(target_dir):
         if filename.endswith(".yaml") or filename.endswith(".yml"):
-            filepath = os.path.join(pricing_dir, filename)
+            filepath = os.path.join(target_dir, filename)
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
@@ -33,9 +36,9 @@ def load_pricing_from_dir(pricing_dir: str) -> None:
                     provider = data.get("provider")
                     models = data.get("models")
                     if provider and isinstance(models, dict):
-                        _PRICING_CACHE[provider.lower()] = {}
+                        _PRICING_CACHE[target_dir][provider.lower()] = {}
                         for model_name, pricing_info in models.items():
-                            _PRICING_CACHE[provider.lower()][model_name.lower()] = {
+                            _PRICING_CACHE[target_dir][provider.lower()][model_name.lower()] = {
                                 "input_cost_per_1m": float(pricing_info.get("input_cost_per_1m", 0.0)),
                                 "output_cost_per_1m": float(pricing_info.get("output_cost_per_1m", 0.0)),
                                 "cached_input_cost_per_1m": float(pricing_info.get("cached_input_cost_per_1m", pricing_info.get("input_cost_per_1m", 0.0)))
@@ -48,25 +51,27 @@ def get_pricing(provider: str, model: str, pricing_dir: Optional[str] = None) ->
     """Returns pricing metadata dict for a specific provider/model, loading on demand if empty."""
     global _PRICING_CACHE
     
+    target_dir = os.path.abspath(pricing_dir or DEFAULT_PRICING_DIR)
     provider_key = provider.lower()
     model_key = model.lower()
 
-    if not _PRICING_CACHE:
-        target_dir = pricing_dir or DEFAULT_PRICING_DIR
+    if target_dir not in _PRICING_CACHE:
         load_pricing_from_dir(target_dir)
 
-    # Try mapping exact model
-    provider_data = _PRICING_CACHE.get(provider_key)
+    dir_cache = _PRICING_CACHE.get(target_dir, {})
+    provider_data = dir_cache.get(provider_key)
     if provider_data:
-        # Check exact match
+        # 1. Check exact match
         if model_key in provider_data:
             return provider_data[model_key]
         
-        # Check fuzzy/substring match — return the most specific (longest) match
+        # 2. Check bidirectional fuzzy/substring match (Fix Bug 5)
         best_match = None
         best_len = 0
         for known_model, pricing_info in provider_data.items():
-            if model_key.startswith(known_model) or known_model in model_key:
+            # Check if model_key is a prefix/substring of known_model OR known_model is a prefix/substring of model_key
+            if (model_key.startswith(known_model) or known_model.startswith(model_key) or 
+                known_model in model_key or model_key in known_model):
                 if len(known_model) > best_len:
                     best_match = pricing_info
                     best_len = len(known_model)
@@ -89,7 +94,6 @@ def calculate_cost(
     """
     pricing = get_pricing(provider, model, pricing_dir)
     if not pricing:
-        # Fallback to zero
         logger.debug(f"Pricing info not found for provider={provider}, model={model}. Defaulting to 0.0 cost.")
         return 0.0
 
@@ -108,10 +112,11 @@ def calculate_cost(
 def get_all_loaded_models(pricing_dir: Optional[str] = None) -> Dict[str, List[str]]:
     """Returns a dictionary mapping provider -> list of model keys loaded in configuration."""
     global _PRICING_CACHE
+    target_dir = os.path.abspath(pricing_dir or DEFAULT_PRICING_DIR)
 
-    if not _PRICING_CACHE:
-        target_dir = pricing_dir or DEFAULT_PRICING_DIR
+    if target_dir not in _PRICING_CACHE:
         load_pricing_from_dir(target_dir)
         
-    return {provider: list(models.keys()) for provider, models in _PRICING_CACHE.items()}
+    dir_cache = _PRICING_CACHE.get(target_dir, {})
+    return {provider: list(models.keys()) for provider, models in dir_cache.items()}
 

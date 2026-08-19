@@ -31,12 +31,13 @@ class SQLiteCache:
                 logger.debug(f"SQLite Cache DB initialized. Journal mode: {mode}")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS prompt_cache (
-                        prompt_hash TEXT PRIMARY KEY,
+                        prompt_hash TEXT NOT NULL,
                         model TEXT NOT NULL,
                         prompt_text TEXT NOT NULL,
                         response_json TEXT NOT NULL,
                         created_at INTEGER NOT NULL,
-                        expires_at INTEGER NOT NULL
+                        expires_at INTEGER NOT NULL,
+                        PRIMARY KEY (prompt_hash, model)
                     )
                 """)
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_model ON prompt_cache (model)")
@@ -45,9 +46,10 @@ class SQLiteCache:
             logger.error(f"Failed to initialize SQLite cache database: {e}")
             raise e
 
-    def _get_hash(self, text: str) -> str:
-        """Returns MD5 hash for exact matching."""
-        return hashlib.md5(text.encode("utf-8")).hexdigest()
+    def _get_hash(self, text: str, params_hash: str = "") -> str:
+        """Returns MD5 hash for exact matching, incorporating parameters if provided."""
+        combined = f"{text}||{params_hash}" if params_hash else text
+        return hashlib.md5(combined.encode("utf-8")).hexdigest()
 
     def _jaccard_similarity(self, text1: str, text2: str) -> float:
         """Calculates fast Jaccard similarity index based on lowercase word sets, stripping punctuation."""
@@ -72,33 +74,29 @@ class SQLiteCache:
                 counts[gram] = counts.get(gram, 0) + 1
             return counts
 
-        v1 = extract_features(text1)
-        v2 = extract_features(text2)
-        all_features = set(v1.keys()) | set(v2.keys())
-        if not all_features:
-            return 0.0
-            
-        dot_product = sum(v1.get(f, 0) * v2.get(f, 0) for f in all_features)
-        mag1 = math.sqrt(sum(val ** 2 for val in v1.values()))
-        mag2 = math.sqrt(sum(val ** 2 for val in v2.values()))
+        f1 = extract_features(text1)
+        f2 = extract_features(text2)
+
+        all_keys = set(f1.keys()) | set(f2.keys())
+        dot_product = sum(f1.get(k, 0) * f2.get(k, 0) for k in all_keys)
+        mag1 = math.sqrt(sum(v * v for v in f1.values()))
+        mag2 = math.sqrt(sum(v * v for v in f2.values()))
+
         if mag1 == 0 or mag2 == 0:
             return 0.0
         return dot_product / (mag1 * mag2)
 
 
-    def get(self, prompt_text: str, model: str) -> Optional[Dict[str, Any]]:
-        """
-        Get cached response for a prompt.
-        First attempts exact hash matching. Falls back to fast Jaccard token similarity if configured.
-        """
-        prompt_hash = self._get_hash(prompt_text)
+    def get(self, prompt_text: str, model: str, params_hash: str = "") -> Optional[Dict[str, Any]]:
+        """Queries local cache for an existing response."""
+        prompt_hash = self._get_hash(prompt_text, params_hash)
         now = int(time.time())
 
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # 1. Exact Match
+                # 1. Exact Match Lookup
                 cursor.execute(
                     "SELECT response_json, expires_at FROM prompt_cache WHERE prompt_hash = ? AND model = ?",
                     (prompt_hash, model)
@@ -111,7 +109,7 @@ class SQLiteCache:
                         return json.loads(response_json)
                     else:
                         # Expired, clean it up
-                        cursor.execute("DELETE FROM prompt_cache WHERE prompt_hash = ?", (prompt_hash,))
+                        cursor.execute("DELETE FROM prompt_cache WHERE prompt_hash = ? AND model = ?", (prompt_hash, model))
                         conn.commit()
                         logger.debug("Cache expired (exact match found but expired)")
                         return None
@@ -149,9 +147,9 @@ class SQLiteCache:
         logger.debug("Cache MISS")
         return None
 
-    def set(self, prompt_text: str, model: str, response: Dict[str, Any], ttl_seconds: int = 3600) -> None:
+    def set(self, prompt_text: str, model: str, response: Dict[str, Any], ttl_seconds: int = 3600, params_hash: str = "") -> None:
         """Stores a prompt completion response in the local cache database."""
-        prompt_hash = self._get_hash(prompt_text)
+        prompt_hash = self._get_hash(prompt_text, params_hash)
         response_json = json.dumps(response)
         now = int(time.time())
         expires_at = now + ttl_seconds
