@@ -652,7 +652,31 @@ def get_vscode_warnings(budget: float = 50.0):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-
-
+@router.get("/vscode/feature-stats")
+@router.get("/vscode/features")
+def get_vscode_feature_stats():
+    """Returns cost attribution grouped by feature tag for VS Code sidebar."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    COALESCE(NULLIF(application, ''), 'default_feature') as feature,
+                    COUNT(*) as call_count,
+                    SUM(cost_actual) as total_cost
+                FROM telemetry
+                GROUP BY feature
+                ORDER BY total_cost DESC
+            """)
+            rows = cursor.fetchall()
+            features = [
+                {
+                    "feature": r["feature"],
+                    "call_count": r["call_count"],
+                    "total_cost": round(r["total_cost"] or 0.0, 4)
+                }
+                for r in rows
+            ]
+            return {"features": features}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
