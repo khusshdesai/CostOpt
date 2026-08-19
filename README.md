@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_dashboard.png" width="900" alt="CostOpt Dashboard Console" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="900" alt="CostOpt Dashboard Console" />
 </p>
 
 ---
