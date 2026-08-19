@@ -8,7 +8,7 @@ from costopt.client import _compute_params_hash, CostOpt
 
 def test_bug1_and_bug4_parameter_hashing_and_multimodel_cache():
     """Validates Bug 1 (params hash isolation) & Bug 4 (multi-model PRIMARY KEY non-eviction)."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         db_path = os.path.join(tmpdir, "test_cache.db")
         cache = SQLiteCache(db_path=db_path)
 
