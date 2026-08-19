@@ -274,6 +274,19 @@ def inject_simulation_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/telemetry/reset")
+def reset_telemetry():
+    """Deletes all telemetry records from the database, resetting all cost metrics to zero."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM telemetry")
+            deleted = cursor.rowcount
+            conn.commit()
+        return {"status": "success", "message": f"Telemetry reset. {deleted} record(s) deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/config")
 def get_active_config():
     """Returns the current costopt.yaml routing rules template."""
@@ -652,10 +665,8 @@ def get_vscode_warnings(budget: float = 50.0):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/vscode/feature-stats")
-@router.get("/vscode/features")
-def get_vscode_feature_stats():
-    """Returns cost attribution grouped by feature tag for VS Code sidebar."""
+def _vscode_features_impl():
+    """Shared implementation: cost attribution grouped by feature/application tag."""
     try:
         with _get_connection(_TELEMETRY_DB) as conn:
             cursor = conn.cursor()
@@ -680,3 +691,13 @@ def get_vscode_feature_stats():
             return {"features": features}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/vscode/feature-stats")
+def get_vscode_feature_stats():
+    """Returns cost attribution grouped by feature tag for VS Code sidebar (alias)."""
+    return _vscode_features_impl()
+
+@router.get("/vscode/features")
+def get_vscode_features():
+    """Returns cost attribution grouped by feature tag for VS Code sidebar."""
+    return _vscode_features_impl()

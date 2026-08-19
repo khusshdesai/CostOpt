@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Elements
   const btnRefresh = document.getElementById("btn-refresh");
   const btnClearCache = document.getElementById("btn-clear-cache");
+  const btnResetTelemetry = document.getElementById("btn-reset-telemetry");
   const btnGenerateSim = document.getElementById("btn-generate-sim");
   
   const valActualCost = document.getElementById("val-actual-cost");
@@ -45,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Event Listeners
   if (btnRefresh) btnRefresh.addEventListener("click", refreshDashboard);
   if (btnClearCache) btnClearCache.addEventListener("click", clearCache);
+  if (btnResetTelemetry) btnResetTelemetry.addEventListener("click", resetTelemetry);
   if (btnGenerateSim) btnGenerateSim.addEventListener("click", injectSimulationData);
   if (btnRunSim) btnRunSim.addEventListener("click", executeSimulation);
 
@@ -216,11 +218,7 @@ response = client.chat.completions.create(
 
   const btnSettingsClearTelemetry = document.getElementById("btn-settings-clear-telemetry");
   if (btnSettingsClearTelemetry) {
-    btnSettingsClearTelemetry.addEventListener("click", () => {
-      if (confirm("Are you sure you want to clear telemetry records?")) {
-        refreshDashboard();
-      }
-    });
+    btnSettingsClearTelemetry.addEventListener("click", resetTelemetry);
   }
 
   async function updateFullTraceTable() {
@@ -522,6 +520,19 @@ response = client.chat.completions.create(
       refreshDashboard();
     } catch (e) {
       alert("Error clearing cache: " + e);
+    }
+  }
+
+  async function resetTelemetry() {
+    if (!confirm("Reset all telemetry? This will delete all logged requests and set every cost metric to $0.0000.")) return;
+    try {
+      const res = await fetch(`${API_BASE}/telemetry/reset`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      alert(data.message);
+      refreshDashboard();
+    } catch (e) {
+      alert("Error resetting telemetry: " + e);
     }
   }
 
