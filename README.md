@@ -1,123 +1,99 @@
+# CostOpt — Developer-Native LLM Cost Intelligence & Optimization ⚡
+
 <p align="center">
-  <br />
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="140" alt="CostOpt Logo Badge" />
-  <br />
-  <br />
-  <p align="center">
-    <strong>Drop-in LLM API cost optimization SDK & local developer observability platform.</strong>
-    <br />
-    Stop paying for redundant LLM calls. Intercept, route, cache, and optimize prompt spend <em>before</em> requests hit paid APIs.
-  </p>
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="140" alt="CostOpt Logo" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/khusshdesai/CostOpt/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square" alt="Build Status"></a>
-# CostOpt — Cost-Aware Local Development & Feature-Level LLM Cost Attribution ⚡
+  <strong>Developer-native LLM cost intelligence, local response caching, circuit breaker protection, and observability directly in VS Code.</strong>
+  <br />
+  Stop waiting for a $500 monthly cloud bill to figure out where your LLM budget went.
+</p>
 
-[![PyPI Version](https://img.shields.io/pypi/v/costopt?color=blue&style=flat-square)](https://pypi.org/project/costopt/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Build Status](https://github.com/khusshdesai/CostOpt/actions/workflows/ci.yml/badge.svg)](https://github.com/khusshdesai/CostOpt/actions/workflows/ci.yml)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/downloads/)
-
-> **Don't wait for a $500 monthly cloud bill to figure out where your LLM budget went.**
-> **CostOpt puts real-time cost attribution directly into your local development loop—giving you feature-level spend visibility, lexical response caching, and automated optimization recommendations before code ships.**
+<p align="center">
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt?color=blue&style=flat-square" alt="PyPI"></a>
+  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple.svg?style=flat-square" alt="VS Code Version">
+</p>
 
 ---
 
-### 💡 Why CostOpt?
+## 🔌 1-Line Zero-Churn Integration
 
-Most LLM gateways operate in **production infrastructure** *after* code is shipped. CostOpt operates in your **local development loop**:
+```python
+# ---------------------------------------------------------
+# BEFORE (Standard OpenAI Client)
+# ---------------------------------------------------------
+from openai import OpenAI
+client = OpenAI()
 
-1. **Feature-Level Cost Attribution**: Group LLM calls by feature or component (`feature="rag_summarizer"`) to track feature unit economics before shipping.
-2. **Local Lexical Cache**: High-speed token & n-gram similarity cache returning **sub-2ms latency and $0.00 cost** on repeated prompts.
-3. **Silent Loop Circuit Breaker**: Detects rapid call loops (>15 calls in 30s) and trips `CostOptCircuitBreakerError` locally to stop runaway billing leaks before they happen.
-4. **Zero-Downtime Outage Failover**: Automatically reroutes queries to multi-provider fallbacks (`gpt-4o` → `claude-3-5-sonnet` or local `ollama/llama3`) when primary providers return 429 Rate Limits or 503 Outages.
-5. **Zero-Churn 1-Line SDK Interception**: Patches standard OpenAI client calls with zero architectural refactoring.
+# ---------------------------------------------------------
+# AFTER (With CostOpt Cost Intelligence)
+# ---------------------------------------------------------
+from openai import OpenAI
+from costopt import CostOpt
 
----
+client = CostOpt(OpenAI())  # 👈 1-line wrapper gives you instant caching, cost inlines & loop protection!
 
-## 🖥️ Developer Observability Console
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="100%" alt="CostOpt Developer Observability Console" />
-</p>
-
-<p align="center">
-  <em>Live System Overview displaying spend metrics, vector cache hits, optimization recommendations, and prompt interception logs.</em>
-</p>
-
-<br />
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/trace_explorer.png" width="100%" alt="Full-Screen Trace Explorer" />
-</p>
-
-<p align="center">
-  <em>Dedicated Trace Explorer auditing prompt MD5 hashes, response latencies, model rerouting decisions, and status code badges.</em>
-</p>
-
-## 🏗️ Architecture & Request Flow
-
-```mermaid
-graph TD
-    App["💻 Application Code"] -->|client.chat.completions.create| Interceptor["⚡ CostOpt Middleware"]
-    
-    Interceptor -->|1. Vector Cosine Lookup| Cache{"💾 SQLite Vector Cache"}
-    Cache -->|Cache HIT 0ms / $0.0| App
-    
-    Cache -->|Cache MISS| Router{"🧠 Complexity Router"}
-    Router -->|Simple Query| MiniModel["🚀 Mini / Local Ollama ($0.0)"]
-    Router -->|Complex Query| OriginalModel["🌐 Cloud Provider API ($$$)"]
-    
-    MiniModel --> Telemetry["📊 Local SQLite Telemetry Logger"]
-    OriginalModel --> Telemetry
-    Telemetry --> Dashboard["🖥️ Local Observability Dashboard (Port 8000)"]
+# Your API calls remain 100% identical:
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Classify customer feedback"}]
+)
 ```
 
 ---
 
-## 🚀 Quickstart
+## ⚡ Core Features
 
-### 1. Installation
+- **🔍 Live CodeLens Cost Inlines**: Real-time cost per request, average tokens, and call counts directly above your Python code lines.
+- **💬 Rich Hover Panels**: Instant cost breakdown, MD5 prompt hash, vector cache hit status, and response latency when hovering over LLM calls.
+- **🛡️ Silent Infinite Loop Circuit Breaker**: Detects rapid call loops (>15 calls in 30s) and trips a local exception before burning your API key.
+- **🔄 Zero-Downtime Outage Failover (429/503)**: Reroutes queries to configured fallback models (`gpt-4o` → `claude-3-5-sonnet` or local `ollama/llama3`) on rate limits or outages.
+- **📊 Native VS Code Sidebar Views**: Spend forecast, feature attribution (`feature="rag_summarizer"`), and cost drift warnings in the VS Code Activity Bar.
+- **📌 Status Bar Widget**: Compact daily spend tracker (`CostOpt: $8.42 today`) in the status bar.
+- **🔒 100% Local & Private**: Telemetry, vector embeddings, and pricing catalogs run strictly on your local PC via SQLite.
 
+---
+
+## 🚀 Quickstart Guide
+
+### 1. Install Python SDK
 ```bash
 pip install costopt
 ```
 
-### 2. Basic Integration
-
+### 2. Wrap your OpenAI Client
 ```python
 from openai import OpenAI
 from costopt import CostOpt
 
-# Wrap standard client in one line
-client = CostOpt(OpenAI(api_key="your-api-key"))
+client = CostOpt(OpenAI())
 
-# Requests are automatically intercepted, cached, and optimized!
+# Make requests as usual
 response = client.chat.completions.create(
     model="gpt-4o",
-    messages=[{"role": "user", "content": "Classify sentiment: I love python!"}]
+    messages=[{"role": "user", "content": "Explain quantum mechanics"}],
+    feature="customer_support"
 )
 ```
 
 ### 3. Launch Observability Dashboard
-
 ```bash
 costopt dashboard
 ```
-
 Open **`http://localhost:8000`** in your browser to view real-time spend analytics, trace logs, and policy rules!
 
-### 4. Integration with Popular Frameworks
+---
 
-CostOpt wraps standard OpenAI-compatible client instances in 1 line:
+## 📦 Integration with Popular Frameworks
 
 **LangChain**:
 ```python
 from langchain_openai import ChatOpenAI
 from costopt import CostOpt
+from openai import OpenAI
 
-# Wrap underlying client
 llm = ChatOpenAI(client=CostOpt(OpenAI()).client)
 ```
 
@@ -125,11 +101,12 @@ llm = ChatOpenAI(client=CostOpt(OpenAI()).client)
 ```python
 from llama_index.llms.openai import OpenAI as LlamaOpenAI
 from costopt import CostOpt
+from openai import OpenAI
 
 llm = LlamaOpenAI(client=CostOpt(OpenAI()).client)
 ```
 
-**FastAPI Middleware Integration**:
+**FastAPI Middleware**:
 ```python
 from fastapi import FastAPI
 from openai import OpenAI
@@ -141,36 +118,9 @@ ai_client = CostOpt(OpenAI())
 
 ---
 
-## 🔌 VS Code Extension — Cost Intelligence While You Code
+## 🔧 Configuration & Custom Models
 
-CostOpt includes a native VS Code Extension that brings real-time LLM cost intelligence directly into your editor:
-
-1. **Install CostOpt & VS Code Extension**:
-   ```bash
-   pip install costopt
-   ```
-   Install `CostOpt` from the VS Code Extensions Marketplace or load `vscode-extension/`.
-
-2. **Start Local Service**:
-   ```bash
-   costopt dashboard
-   ```
-
-3. **Make LLM Calls**:
-   As you call your LLM code locally or run test suites, CostOpt displays:
-   - **Live CodeLens**: Line-level cost (`CostOpt: ~$0.012 / request | Avg tokens: 3,421 | Calls: 184`) directly above your code.
-   - **Hover Panels**: Rich, compact cost breakdowns when hovering over `client.chat.completions.create()`.
-   - **Status Bar Item**: Compact daily spend tracker (`CostOpt: $8.42 today`).
-   - **Feature Attribution Sidebar**: Breakdown of spend grouped by feature (`@costopt.track("customer_support")` or `feature="summarizer"`).
-   - **Cost Forecast & Warnings**: Spend forecasting and cost drift warnings directly in the Problems panel.
-
----
-
-## 🔧 Configuration Guide
-
-### Custom Models & User Local Overrides
-
-Track custom, fine-tuned, or local models by dropping a `.yaml` file into your project:
+Track custom, fine-tuned, or local Ollama models by dropping a `.yaml` file into your project:
 
 ```yaml
 provider: "ollama"
@@ -180,17 +130,27 @@ models:
     output_cost_per_1m: 0.0
 ```
 
-Pass the pricing directory:
-
-```python
-client = CostOpt(OpenAI(), pricing_dir="./my_pricing")
-```
-
 ---
 
-## 🛡️ Security Audit
+## ❓ Frequently Asked Questions (FAQ)
 
-CostOpt has undergone automated penetration testing for SQL injections, CORS misconfigurations, and rate-limiting DB locks. See the full audit report at [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
+**Q: Does CostOpt send my prompt data or code to external servers?**  
+*No. CostOpt is 100% private and runs locally on your PC. All telemetry logs, similarity vectors, and pricing catalogs are stored locally in SQLite database files (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine.*
+
+**Q: Does wrapping my client add latency overhead to my LLM calls?**  
+*No. CostOpt computes prompt hashes and cache checks in under 1ms. Telemetry records are written asynchronously in a non-blocking background worker thread.*
+
+**Q: How does the local cache work and what does a cache hit cost?**  
+*When a repeat or highly similar prompt is detected, CostOpt replays the cached response locally in <2ms with **$0.00 cost** without hitting paid provider APIs.*
+
+**Q: Works with LangChain, LlamaIndex, or custom frameworks?**  
+*Yes. Pass the wrapped client `CostOpt(OpenAI()).client` into any framework like LangChain (`ChatOpenAI(client=...)`) or LlamaIndex.*
+
+**Q: What if the status bar displays `CostOpt: Offline`?**  
+*Start the local background service by running `costopt dashboard` in your terminal.*
+
+**Q: How do I track custom, fine-tuned, or local Ollama models?**  
+*Drop a `.yaml` file into your project or pricing directory with model costs (e.g. `input_cost_per_1m: 0.0` for local Ollama models).*
 
 ---
 
