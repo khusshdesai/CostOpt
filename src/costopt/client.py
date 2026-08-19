@@ -2,6 +2,7 @@ import os
 import inspect
 import time
 import uuid
+import hashlib
 import logging
 from typing import Any, Dict, List, Optional
 from openai.types.chat import ChatCompletion
@@ -14,6 +15,11 @@ from costopt.telemetry import SQLiteTelemetryLogger
 from costopt.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger("costopt.client")
+
+def _compute_prompt_hash(text: str) -> str:
+    if not text:
+        return ""
+    return hashlib.md5(text.encode("utf-8")).hexdigest()[:8]
 
 def _get_caller_location() -> tuple:
     """Inspects stack frames to pinpoint user code file path and line number."""
@@ -60,7 +66,7 @@ class CostOptCompletions:
             if content:
                 prompt_parts.append(str(content))
         prompt_text = "\n".join(prompt_parts)
-        prompt_hash = hashlib_helper(prompt_text)
+        prompt_hash = _compute_prompt_hash(prompt_text)
 
         # 0. Circuit Breaker Check to prevent silent runaway billing loops
         location_key = f"{file_path}:{line_number}" if file_path else "<unknown_location>"
