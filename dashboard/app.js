@@ -2,52 +2,8 @@
  * CostOpt Enterprise FinOps Console — App Logic (All 5 Phases Completed)
  */
 
-let overviewChart = null;
-let spendTimeChart = null;
-let currentSortColumn = 'spend';
-let currentSortDirection = 'desc';
-let lastModelData = [];
-
-let currentRequestSearch = '';
-let currentRequestOutcome = 'all';
-
-let initialYamlConfig = '';
-
 /**
- * Shared Adaptive Currency Formatter
- * Rules:
- * value >= 0.01  -> 2 decimal places (e.g. $1.24, $1,240.00)
- * value >= 0.001 -> 4 decimal places (e.g. $0.0023)
- * value < 0.001  -> 4 decimal places (e.g. $0.0001)
- */
-function formatCurrency(val) {
-  if (val === undefined || val === null || isNaN(val)) return '$0.00';
-  const num = Number(val);
-  const abs = Math.abs(num);
-  if (abs === 0) return '$0.00';
-  if (abs >= 0.01) {
-    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  if (abs >= 0.001) {
-    return '$' + num.toFixed(4);
-  }
-  return '$' + num.toFixed(4);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initTabs();
-  initRefreshButton();
-  initSortableHeaders();
-  initRequestFilters();
-  initPolicyEditor();
-  initDestructiveActions();
-  
-  // Load Phase 1 Overview Data by default
-  loadOverviewData();
-});
-
-/**
- * Global Tab Switcher Function (Exposed to window for inline onclick fallback)
+ * Global Tab Switcher Function (Exposed to window immediately)
  */
 window.switchTab = function(targetTab, e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -99,6 +55,50 @@ window.switchTab = function(targetTab, e) {
     loadPoliciesData();
   }
 };
+
+let overviewChart = null;
+let spendTimeChart = null;
+let currentSortColumn = 'spend';
+let currentSortDirection = 'desc';
+let lastModelData = [];
+
+let currentRequestSearch = '';
+let currentRequestOutcome = 'all';
+
+let initialYamlConfig = '';
+
+/**
+ * Shared Adaptive Currency Formatter
+ * Rules:
+ * value >= 0.01  -> 2 decimal places (e.g. $1.24, $1,240.00)
+ * value >= 0.001 -> 4 decimal places (e.g. $0.0023)
+ * value < 0.001  -> 4 decimal places (e.g. $0.0001)
+ */
+function formatCurrency(val) {
+  if (val === undefined || val === null || isNaN(val)) return '$0.00';
+  const num = Number(val);
+  const abs = Math.abs(num);
+  if (abs === 0) return '$0.00';
+  if (abs >= 0.01) {
+    return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (abs >= 0.001) {
+    return '$' + num.toFixed(4);
+  }
+  return '$' + num.toFixed(4);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  initRefreshButton();
+  initSortableHeaders();
+  initRequestFilters();
+  initPolicyEditor();
+  initDestructiveActions();
+  
+  // Load Phase 1 Overview Data by default
+  loadOverviewData();
+});
 
 /**
  * 1. Tab Router Handler
@@ -1147,6 +1147,7 @@ function openRequestDetailModalById(reqId) {
   const log = window._requestLogsMap ? window._requestLogsMap[reqId] : null;
   if (!log) return;
 
+  try {
     const isCache = log.cache_hit === 1;
     const isReroute = !isCache && (log.model_requested !== log.model_used);
     
