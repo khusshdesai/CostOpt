@@ -43,29 +43,29 @@ CostOpt acts as a transparent, drop-in SDK interceptor and decision engine that:
 
 ```mermaid
 flowchart TD
-    App[Calling Application] -->|ChatCompletion.create| Interceptor[CostOpt SDK Client Interceptor]
-    Interceptor --> CB[Circuit Breaker Check]
-    CB --> Engine[Centralized Decision Engine]
+    App["Calling Application"] -->|ChatCompletion.create| Interceptor["CostOpt SDK Client Interceptor"]
+    Interceptor --> CB["Circuit Breaker Check"]
+    CB --> Engine["Centralized Decision Engine"]
     
-    subgraph Engine [Intelligent Decision Pipeline]
-        Analyzer[1. Request Analyzer\nTask & Complexity Classification]
-        CacheLayer[2. Semantic Cache Layer\nTier 1: MD5 Exact | Tier 2: TF-IDF Cosine]
-        Registry[3. Model Capability Registry\nCapability Scores & Token Pricing]
-        Guardrails[4. Fallback & Quality Guardrails\nConfidence & Outage Failover]
-        Estimator[5. Cost Estimator\nBaseline vs Target Cost Delta]
+    subgraph Engine ["Intelligent Decision Pipeline"]
+        Analyzer["1. Request Analyzer<br/>Task & Complexity Classification"]
+        CacheLayer["2. Semantic Cache Layer<br/>Tier 1: MD5 Exact - Tier 2: TF-IDF Cosine"]
+        Registry["3. Model Capability Registry<br/>Capability Scores & Token Pricing"]
+        Guardrails["4. Fallback & Quality Guardrails<br/>Confidence & Outage Failover"]
+        Estimator["5. Cost Estimator<br/>Baseline vs Target Cost Delta"]
     end
     
-    CacheLayer -->|Cache HIT <15ms| Hit[Return Local Response $0.00]
+    CacheLayer -->|Cache HIT <15ms| Hit["Return Local Response $0.00"]
     CacheLayer -->|Cache MISS| Registry
     Registry --> Guardrails
-    Guardrails -->|Decision: REROUTE / DIRECT| API[Upstream LLM API]
-    API -->|Outage 429/500| Failover[Failover Secondary Model]
+    Guardrails -->|Decision: REROUTE / DIRECT| API["Upstream LLM API"]
+    API -->|Outage 429/500| Failover["Failover Secondary Model"]
     
-    Hit --> DB[(SQLite Telemetry & Cache DB)]
+    Hit --> DB[("SQLite Telemetry & Cache DB")]
     API --> DB
     Failover --> DB
     
-    DB --> Dashboard[CostOpt FinOps Dashboard\nhttp://127.0.0.1:8000]
+    DB --> Dashboard["CostOpt FinOps Dashboard<br/>http://127.0.0.1:8000"]
 ```
 
 ---
