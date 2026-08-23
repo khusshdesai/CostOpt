@@ -47,9 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 1. Tab Router Handler
+ * Global Tab Switcher Function (Exposed to window for inline onclick fallback)
  */
-function initTabs() {
+window.switchTab = function(targetTab, e) {
+  if (e && e.preventDefault) e.preventDefault();
   const navItems = document.querySelectorAll('.nav-item');
   const tabPanels = document.querySelectorAll('.tab-panel');
   const titleHeading = document.getElementById('page-title-heading');
@@ -63,44 +64,58 @@ function initTabs() {
     policies: { title: 'Policy Configuration', sub: 'Configure cost optimization routing rules and model fallbacks' }
   };
 
+  navItems.forEach(nav => {
+    if (nav.getAttribute('data-tab') === targetTab) {
+      nav.classList.add('active');
+    } else {
+      nav.classList.remove('active');
+    }
+  });
+
+  tabPanels.forEach(panel => {
+    if (panel.id === `view-${targetTab}`) {
+      panel.classList.add('active');
+    } else {
+      panel.classList.remove('active');
+    }
+  });
+
+  if (headers[targetTab]) {
+    if (titleHeading) titleHeading.textContent = headers[targetTab].title;
+    if (subtitleText) subtitleText.textContent = headers[targetTab].sub;
+  }
+
+  if (targetTab === 'overview') {
+    loadOverviewData();
+  } else if (targetTab === 'spend') {
+    loadSpendData();
+  } else if (targetTab === 'optimizations') {
+    loadOptimizationsData();
+  } else if (targetTab === 'requests') {
+    loadRequestsData();
+  } else if (targetTab === 'policies') {
+    loadPoliciesData();
+  }
+};
+
+/**
+ * 1. Tab Router Handler
+ */
+function initTabs() {
+  const navItems = document.querySelectorAll('.nav-item');
+
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
       const targetTab = item.getAttribute('data-tab');
-
-      navItems.forEach(nav => nav.classList.remove('active'));
-      tabPanels.forEach(panel => panel.classList.remove('active'));
-
-      item.classList.add('active');
-      const targetPanel = document.getElementById(`view-${targetTab}`);
-      if (targetPanel) {
-        targetPanel.classList.add('active');
-      }
-
-      if (headers[targetTab]) {
-        if (titleHeading) titleHeading.textContent = headers[targetTab].title;
-        if (subtitleText) subtitleText.textContent = headers[targetTab].sub;
-      }
-
-      if (targetTab === 'overview') {
-        loadOverviewData();
-      } else if (targetTab === 'spend') {
-        loadSpendData();
-      } else if (targetTab === 'optimizations') {
-        loadOptimizationsData();
-      } else if (targetTab === 'requests') {
-        loadRequestsData();
-      } else if (targetTab === 'policies') {
-        loadPoliciesData();
-      }
+      if (targetTab) window.switchTab(targetTab, e);
     });
   });
 
   const brandHome = document.getElementById('btn-brand-home');
   if (brandHome) {
-    brandHome.addEventListener('click', () => {
-      const overviewTab = document.querySelector('.nav-item[data-tab="overview"]');
-      if (overviewTab) overviewTab.click();
+    brandHome.addEventListener('click', (e) => {
+      window.switchTab('overview', e);
     });
   }
 }

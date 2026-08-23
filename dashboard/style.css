@@ -195,6 +195,10 @@ body::after {
   position: relative;
 }
 
+.nav-item * {
+  pointer-events: none;
+}
+
 .nav-item .nav-icon {
   width: 18px;
   height: 18px;
