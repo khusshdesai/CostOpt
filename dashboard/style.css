@@ -193,6 +193,11 @@ body::after {
   transition: var(--transition-fast);
   user-select: none;
   position: relative;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  outline: none;
 }
 
 .nav-item * {

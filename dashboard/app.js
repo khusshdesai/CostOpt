@@ -75,8 +75,10 @@ window.switchTab = function(targetTab, e) {
   tabPanels.forEach(panel => {
     if (panel.id === `view-${targetTab}`) {
       panel.classList.add('active');
+      panel.style.setProperty('display', 'flex', 'important');
     } else {
       panel.classList.remove('active');
+      panel.style.setProperty('display', 'none', 'important');
     }
   });
 
@@ -102,9 +104,21 @@ window.switchTab = function(targetTab, e) {
  * 1. Tab Router Handler
  */
 function initTabs() {
-  const navItems = document.querySelectorAll('.nav-item');
+  const sidebarNav = document.querySelector('.sidebar-nav');
 
-  navItems.forEach(item => {
+  if (sidebarNav) {
+    sidebarNav.addEventListener('click', (e) => {
+      const btn = e.target.closest('.nav-item');
+      if (!btn) return;
+      e.preventDefault();
+      const targetTab = btn.getAttribute('data-tab');
+      if (targetTab) {
+        window.switchTab(targetTab, e);
+      }
+    });
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
       const targetTab = item.getAttribute('data-tab');
