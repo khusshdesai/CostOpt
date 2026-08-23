@@ -17,7 +17,6 @@
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
-  <a href="https://github.com/khusshdesai/CostOpt"><img src="https://img.shields.io/badge/tests-18%20passed-brightgreen" alt="Tests"></a>
 </p>
 
 ---
