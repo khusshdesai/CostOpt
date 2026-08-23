@@ -1,45 +1,82 @@
-# CostOpt — Developer-Focused LLM Cost Optimization & Observability Platform
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="120" alt="CostOpt Logo" />
+</p>
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-18%20passed-emerald.svg)](tests/)
+<h1 align="center">CostOpt</h1>
 
-CostOpt is an open-source, local-first LLM cost optimization SDK and observability console. It intercepts OpenAI and compatible ChatCompletion API calls to reduce LLM spend through multi-tier prompt caching, intelligent model rerouting, and real-time FinOps telemetry without adding cloud infrastructure or external database dependencies.
+<p align="center">
+  <strong>Developer-Focused LLM Cost Optimization & Observability Platform</strong><br>
+  <em>Drop-in OpenAI SDK interceptor, multi-tier prompt caching, intelligent model routing, decision explainability & Zenix Glass FinOps console.</em>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt.svg?color=3B82F6" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/dm/costopt.svg?color=10B981" alt="PyPI Downloads"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/khusshdesai.costopt-vscode.svg?color=F59E0B&label=VS%20Code" alt="VS Marketplace"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/open-vsx/dt/khusshdesai/costopt-vscode.svg?color=6366F1&label=Open%20VSX" alt="Open VSX Installs"></a>
+  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/github/license/khusshdesai/CostOpt.svg?color=64748B" alt="License"></a>
+  <a href="https://github.com/khusshdesai/CostOpt/actions"><img src="https://img.shields.io/badge/tests-18%20passed-10B981.svg" alt="Tests"></a>
+</p>
 
 ---
 
-## Overview
+## ⚡ Overview
 
 ### The Problem
 Generative AI applications frequently overspend by:
 1. **Executing Duplicate Requests**: Re-querying upstream APIs for exact or near-identical prompts.
-2. **Over-provisioning Models**: Routing simple classification, extraction, or short summarization queries to expensive flagship models (e.g., `gpt-4o`, `claude-3-5-sonnet`) when lower-cost models (`gpt-4o-mini`, `claude-3-haiku`, `llama3`) satisfy accuracy requirements.
+2. **Over-provisioning Models**: Routing simple classification, extraction, or short summarization queries to expensive flagship models (e.g., `gpt-4o`, `claude-3-5-sonnet`) when lower-cost models (`gpt-4o-mini`, `claude-3-haiku`, `llama3`, `deepseek-r1`) satisfy accuracy requirements.
 3. **Lack of Cost Visibility**: Difficulty tracking net savings, model breakdown, or request-level optimization decisions.
 
 ### The CostOpt Solution
 CostOpt acts as a transparent, drop-in SDK interceptor and decision engine that:
 - Serves prompt hits locally in **<15ms at $0.00 cost** via an SQLite prompt cache.
-- Analyzes request complexity to automatically route simple tasks to cost-effective models.
+- Analyzes request intent and complexity to automatically route simple tasks to cost-effective models.
 - Enforces quality guardrails and automatic outage failovers.
-- Records unified FinOps telemetry displayed on a dark-slate dashboard.
+- Records unified FinOps telemetry displayed on a Zenix Refined Glass web console.
 
 ---
 
-## Key Capabilities
+## 🔌 1-Line Zero-Churn Integration
 
-- **Exact MD5 Prompt Cache**: Replays exact prompt completions locally with parameter hashing (`temperature`, `tools`, `response_format`, `max_tokens`, `seed`).
-- **Local TF-IDF Similarity Cache**: Computes word and character n-gram cosine vector similarity for prompt variants.
-- **Request Intent Analysis**: Classifies incoming prompts into 7 task types (`simple_classification`, `extraction`, `summarization`, `coding`, `reasoning`, `creative_generation`, `general_chat`) with confidence scoring.
-- **Model Capability Registry**: Centralized registry containing capability scores (0–100), task suitabilities, and token pricing for OpenAI, Anthropic, Google, and Ollama models.
-- **Policy-Aware Rerouting**: Evaluates `costopt.yaml` rules to route eligible queries from flagship models to efficient alternatives.
-- **Safety & Quality Guardrails**: Preserves original flagship models for high-complexity coding/reasoning prompts or low confidence scores (<0.70).
-- **Circuit Breaker & Outage Failover**: Detects call velocity loops and automatically fails over to active backups during upstream 429/500 API outages.
-- **Decision Trace Explainability**: Stores human-readable step-by-step decision traces with every transaction.
-- **FinOps Observability Dashboard**: Built-in 5-view web console (`Overview`, `Spend`, `Optimizations`, `Requests`, `Policies`).
+```python
+# ─── BEFORE (Standard OpenAI Client) ────────────────────────────────────────
+from openai import OpenAI
+client = OpenAI()
+
+# ─── AFTER (With CostOpt — zero other changes needed) ───────────────────────
+from openai import OpenAI
+from costopt import CostOpt
+
+client = CostOpt(OpenAI())  # 👈 Intercepts transparently
+
+# Your API calls are 100% identical — CostOpt automatically analyzes, caches, & routes:
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Classify customer feedback: Great product!"}]
+)
+print(response.choices[0].message.content)
+```
 
 ---
 
-## Architecture
+## ⚡ Core Features
+
+| Feature | Description |
+|---|---|
+| 🗄️ **Multi-Tier Prompt Cache** | Tier 1 exact MD5 hash matching (<15ms, $0.00) + Tier 2 local TF-IDF cosine vector similarity matching. Includes parameter hashing (`temperature`, `tools`, `response_format`, `seed`). |
+| 🧠 **Intelligent Decision Engine** | Classifies prompts into 7 task categories (`simple_classification`, `extraction`, `summarization`, `coding`, `reasoning`, `creative_generation`, `general_chat`) with confidence scoring. |
+| 🔀 **Policy-Aware Model Router** | Rule-based keyword and task-complexity routing — simple tasks auto-rerouted to efficient models (`gpt-4o` ➔ `gpt-4o-mini` / `deepseek-r1`). |
+| 🛡️ **Circuit Breaker** | Detects call velocity loops from the same file/line location and trips `CostOptCircuitBreakerError`. |
+| 🔄 **Outage Failover** | Auto-retries fallback models on 429/503 errors (`gpt-4o` ➔ `claude-3-5-sonnet` ➔ `llama3`). |
+| 📊 **Zenix Glass FinOps Console** | Premium dark glass dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
+| 🔍 **Decision Intelligence Traces** | Step-by-step visual trace flow explaining every request analysis, cache evaluation, and routing decision. |
+| 🖥️ **VS Code Extension** | Inline CodeLens cost per request, call counts, hover panels, and status bar metrics directly inside VS Code. |
+| 🔒 **100% Local & Private** | Stored in local SQLite (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine. |
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
@@ -70,7 +107,7 @@ flowchart TD
 
 ---
 
-## Optimization Decision Flow
+## 🚦 Optimization Decision Flow
 
 Every request is evaluated by the centralized `DecisionEngine` and assigned one of four execution outcomes:
 
@@ -83,151 +120,135 @@ Every request is evaluated by the centralized `DecisionEngine` and assigned one 
 
 ---
 
-## Dashboard
+## 🚀 Quickstart Guide
 
-The built-in web console operates on `http://127.0.0.1:8000`, featuring a **Zenix Refined Glass** visual theme (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
-
-![CostOpt Zenix Refined Glass Overview](docs/images/dashboard_overview.png)
-
-1. **Overview**: Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
-2. **Spend**: Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
-3. **Optimizations**: Dominant Net Savings hero card, Decision Strategy distribution (`Cache Hits`, `Model Reroutes`, `Direct Execution`), Task Classification breakdown, active optimization engines status cards, and real-time audit activity log.
-4. **Requests**: Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
-
-![CostOpt Decision Intelligence Trace Modal](docs/images/decision_trace_modal.png)
-
-5. **Policies**: Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
-
----
-
-## Project Structure
-
-```
-.
-├── src/costopt/
-│   ├── __init__.py           # SDK package exports
-│   ├── client.py             # CostOpt SDK Client Interceptor
-│   ├── cache.py              # SQLite cache engine (MD5 + TF-IDF Cosine)
-│   ├── router.py             # YAML rule matching & fallbacks
-│   ├── pricing.py            # Token pricing loader & cost calculation
-│   ├── telemetry.py          # Async SQLite telemetry logger
-│   ├── circuit_breaker.py    # Rate-limiting & loop detection
-│   ├── anomaly.py            # Z-score statistical cost anomaly detector
-│   ├── main.py               # CLI entrypoint (costopt dashboard)
-│   ├── optimization/         # Phase 3 Intelligent Optimization Engine
-│   │   ├── analyzer.py       # Request intent & complexity analyzer
-│   │   ├── model_registry.py # Model capability registry & metadata
-│   │   ├── semantic_cache.py # Multi-tier cache layer
-│   │   ├── cost_estimator.py # Cost & savings calculator
-│   │   ├── fallback_manager.py # Quality guardrails & outage failover
-│   │   └── decision_engine.py  # Centralized decision orchestrator
-│   └── api/                  # FastAPI Web Backend
-│       ├── server.py         # FastAPI application init
-│       └── routes.py         # Dashboard API endpoints
-├── dashboard/                # Frontend Web Console
-│   ├── index.html            # Single Page App DOM layout
-│   ├── style.css             # Enterprise FinOps theme (Dark Slate)
-│   └── app.js                # Tab routing, Chart.js, & modal handlers
-├── pricing/providers/        # Token pricing YAML manifests
-│   ├── openai.yaml
-│   ├── anthropic.yaml
-│   ├── google.yaml
-│   ├── huggingface.yaml
-│   └── ollama.yaml
-├── tests/                    # Pytest test suite
-│   ├── unit/                 # Unit & integration tests
-├── costopt.yaml              # Active policy configuration file
-├── pyproject.toml            # Python packaging metadata
-├── requirements.txt          # Python dependencies manifest
-└── README.md                 # Project documentation
+### Step 1 — Install Python SDK
+```bash
+pip install costopt
 ```
 
----
-
-## Installation
-
-### Prerequisites
-- Python 3.10 or higher
-
-### Step-by-Step Setup
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/khusshdesai/CostOpt.git
-   cd CostOpt
-   ```
-
-2. **Create and Activate Virtual Environment**:
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   # Or install in editable development mode:
-   pip install -e .
-   ```
-
-4. **Configure Environment Variables**:
-   ```bash
-   cp .env.example .env
-   ```
-
----
-
-## Usage
-
-### 1. SDK Python Interceptor Example
-
-Wrap your existing `openai.OpenAI()` client with `CostOpt`:
-
+### Step 2 — Wrap your LLM client
 ```python
 from openai import OpenAI
 from costopt import CostOpt
 
-# Initialize original client
-raw_client = OpenAI(api_key="your-api-key")
+client = CostOpt(OpenAI())
 
-# Wrap client with CostOpt Interceptor
-client = CostOpt(
-    client=raw_client,
-    provider="openai",
-    config_path="costopt.yaml",
-    environment="production"
-)
-
-# Call completions as normal — CostOpt automatically analyzes, caches, and routes queries
 response = client.chat.completions.create(
     model="gpt-4o",
-    messages=[
-        {"role": "system", "content": "You are a sentiment analyzer."},
-        {"role": "user", "content": "Classify sentiment: This product is outstanding!"}
-    ]
+    messages=[{"role": "user", "content": "Classify sentiment: This product is outstanding!"}]
 )
-
 print(response.choices[0].message.content)
 ```
 
-### 2. Starting the Dashboard Console
-
-Launch the web console using the CLI:
-
+### Step 3 — Launch the Observability Dashboard
 ```bash
 costopt dashboard
 # Or run via Python module:
 python -m costopt.main dashboard
 ```
-
-Open `http://127.0.0.1:8000` in your web browser.
+Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## Configuration
+## 📊 Zenix Refined Glass Observability Dashboard
+
+The web console features a **Zenix Refined Glass** aesthetic (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
+
+### 1. Overview
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="880" alt="Dashboard Overview" />
+</p>
+
+> Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
+
+### 2. Spend Analytics
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_spend.png" width="880" alt="Spend Tab" />
+</p>
+
+> Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
+
+### 3. Requests Explorer & Decision Intelligence Trace
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/decision_trace_modal.png" width="880" alt="Request Inspection Trace Modal" />
+</p>
+
+> Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
+
+### 4. Policies Configuration
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_settings.png" width="880" alt="Policies Tab" />
+</p>
+
+> Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
+
+---
+
+## 🌐 Multi-Provider Support
+
+CostOpt supports wrapping **OpenAI**, **Anthropic**, and **Google Gemini** clients:
+
+```python
+# OpenAI
+from openai import OpenAI
+from costopt import CostOpt
+
+client = CostOpt(OpenAI(), provider="openai")
+
+# Anthropic
+import anthropic
+from costopt import CostOpt
+
+client = CostOpt(anthropic.Anthropic(), provider="anthropic")
+
+# Google Gemini (via OpenAI-compatible API)
+from openai import OpenAI
+from costopt import CostOpt
+
+client = CostOpt(
+    OpenAI(api_key="...", base_url="https://generativelanguage.googleapis.com/v1beta/openai/"),
+    provider="google"
+)
+```
+
+Supported pricing catalogs: **OpenAI**, **Anthropic**, **Google Gemini**, **HuggingFace**, **Ollama** (local, $0.00).
+
+---
+
+## 📦 Integration with Popular Frameworks
+
+**LangChain:**
+```python
+from langchain_openai import ChatOpenAI
+from costopt import CostOpt
+from openai import OpenAI
+
+llm = ChatOpenAI(client=CostOpt(OpenAI()).client)
+```
+
+**LlamaIndex:**
+```python
+from llama_index.llms.openai import OpenAI as LlamaOpenAI
+from costopt import CostOpt
+from openai import OpenAI
+
+llm = LlamaOpenAI(client=CostOpt(OpenAI()).client)
+```
+
+**FastAPI:**
+```python
+from fastapi import FastAPI
+from openai import OpenAI
+from costopt import CostOpt
+
+app = FastAPI()
+ai_client = CostOpt(OpenAI())
+```
+
+---
+
+## 🔧 Configuration & Policy Rules
 
 Control model routing policies and fallback chains in `costopt.yaml`:
 
@@ -246,9 +267,34 @@ routing:
       - "gpt-4o-mini"
 ```
 
+Add custom or local Ollama models by dropping a `.yaml` into the `pricing/providers/` directory:
+
+```yaml
+provider: "ollama"
+models:
+  llama3:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+  deepseek-r1:
+    input_cost_per_1m: 0.0
+    output_cost_per_1m: 0.0
+```
+
 ---
 
-## Testing
+## 🖥️ VS Code Extension
+
+Install the **CostOpt** extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode) or [Open VSX Registry](https://open-vsx.org/extension/khusshdesai/costopt-vscode).
+
+**Features:**
+- 📍 **CodeLens Inlines** — cost per request, avg tokens, call count directly above `client.chat.completions.create()` lines
+- 💬 **Hover Panels** — full cost breakdown + MD5 hash + cache status on hover
+- 📈 **Sidebar Views** — Spend Forecast, Feature Attribution, Cost Drift Warnings
+- 📌 **Status Bar** — `CostOpt: $8.42 today` live in VS Code bottom bar
+
+---
+
+## 🧪 Testing
 
 Run the automated Pytest test suite:
 
@@ -260,22 +306,34 @@ python -m pytest tests/ -v
 
 ---
 
-## Limitations
+## ❓ FAQ
 
-- **Local Similarity Caching**: The semantic cache uses TF-IDF word and character n-gram cosine vector similarity matching locally. It does not require or connect to external cloud vector databases (e.g., Pinecone, Weaviate).
-- **Single-Node SQLite Architecture**: Designed for local development, single-instance microservices, or sidecar proxies.
-- **Heuristic Capability Scores**: Model capability scores (0–100) are curated in `ModelRegistry` and can be adjusted as new model benchmarks are published.
+**Q: Does CostOpt send my prompts or data to external servers?**
+> No. 100% local. All telemetry, cache, and pricing data is stored in local SQLite files (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine.
+
+**Q: Does it add latency to my LLM calls?**
+> No. Prompt hashing and cache checks take under 1ms. Telemetry is written asynchronously in a background thread.
+
+**Q: What does a cache hit cost?**
+> `$0.00`. Cached responses are replayed locally in under 15ms without hitting paid provider APIs.
+
+**Q: Does it work with LangChain / LlamaIndex / FastAPI?**
+> Yes. Pass the wrapped client (`CostOpt(OpenAI()).client`) into any framework that accepts a raw OpenAI client object.
+
+**Q: How does fuzzy/semantic cache matching work?**
+> CostOpt uses TF-IDF word and character n-gram cosine vector similarity. Set `similarity_threshold` in `costopt.yaml` to enable near-duplicate matching (e.g., `0.90` = 90% similar prompts return cached response).
+
+**Q: How do I reset all telemetry to start fresh?**
+> Click **Reset Telemetry Analytics** on the Policies tab in the dashboard console.
 
 ---
 
-## Future Possibilities
+## 📄 License
 
-- Embedding-based semantic caching via local ONNX runtime embeddings.
-- Native SDK wrappers for LangChain and LlamaIndex.
-- Distributed Redis caching adapter for multi-node deployments.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+<p align="center">
+  <em>Built for developers who want to ship fast and spend smart. 100% open source.</em>
+</p>
