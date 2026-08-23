@@ -6,16 +6,15 @@
 
 <p align="center">
   <strong>Developer-Focused LLM Cost Optimization & Observability Platform</strong><br>
-  <em>Drop-in OpenAI SDK interceptor, multi-tier prompt caching, intelligent model routing, decision explainability & Zenix Glass FinOps console.</em>
+  <em>Drop-in OpenAI SDK interceptor, multi-tier prompt caching, intelligent model routing, decision explainability & FinOps console.</em>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt.svg?color=3B82F6" alt="PyPI Version"></a>
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/dm/costopt.svg?color=10B981" alt="PyPI Downloads"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/visual-studio-marketplace/v/khusshdesai.costopt-vscode.svg?color=F59E0B&label=VS%20Code" alt="VS Marketplace"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/open-vsx/dt/khusshdesai/costopt-vscode.svg?color=6366F1&label=Open%20VSX" alt="Open VSX Installs"></a>
-  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/github/license/khusshdesai/CostOpt.svg?color=64748B" alt="License"></a>
-  <a href="https://github.com/khusshdesai/CostOpt/actions"><img src="https://img.shields.io/badge/tests-18%20passed-10B981.svg" alt="Tests"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt?color=3B82F6&logo=pypi&logoColor=white" alt="PyPI Version"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python&logoColor=white" alt="Python Version"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/open-vsx/dt/khusshdesai/costopt-vscode?color=6366F1&label=Open%20VSX" alt="Open VSX Installs"></a>
+  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
+  <a href="https://github.com/khusshdesai/CostOpt"><img src="https://img.shields.io/badge/tests-18%20passed-10B981.svg" alt="Tests"></a>
 </p>
 
 ---
@@ -33,7 +32,7 @@ CostOpt acts as a transparent, drop-in SDK interceptor and decision engine that:
 - Serves prompt hits locally in **<15ms at $0.00 cost** via an SQLite prompt cache.
 - Analyzes request intent and complexity to automatically route simple tasks to cost-effective models.
 - Enforces quality guardrails and automatic outage failovers.
-- Records unified FinOps telemetry displayed on a Zenix Refined Glass web console.
+- Records unified FinOps telemetry displayed on a glassmorphism web console.
 
 ---
 
@@ -69,7 +68,7 @@ print(response.choices[0].message.content)
 | 🔀 **Policy-Aware Model Router** | Rule-based keyword and task-complexity routing — simple tasks auto-rerouted to efficient models (`gpt-4o` ➔ `gpt-4o-mini` / `deepseek-r1`). |
 | 🛡️ **Circuit Breaker** | Detects call velocity loops from the same file/line location and trips `CostOptCircuitBreakerError`. |
 | 🔄 **Outage Failover** | Auto-retries fallback models on 429/503 errors (`gpt-4o` ➔ `claude-3-5-sonnet` ➔ `llama3`). |
-| 📊 **Zenix Glass FinOps Console** | Premium dark glass dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
+| 📊 **Glassmorphism FinOps Console** | Premium dark glass dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
 | 🔍 **Decision Intelligence Traces** | Step-by-step visual trace flow explaining every request analysis, cache evaluation, and routing decision. |
 | 🖥️ **VS Code Extension** | Inline CodeLens cost per request, call counts, hover panels, and status bar metrics directly inside VS Code. |
 | 🔒 **100% Local & Private** | Stored in local SQLite (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine. |
@@ -151,9 +150,9 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## 📊 Zenix Refined Glass Observability Dashboard
+## 📊 Glassmorphism Observability Dashboard
 
-The web console features a **Zenix Refined Glass** aesthetic (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
+The web console features a **Glassmorphism** aesthetic (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
 
 ### 1. Overview
 <p align="center">

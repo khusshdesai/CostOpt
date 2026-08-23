@@ -41,7 +41,7 @@
   --text-muted: #64748B;
   
   /* Easing & Transition Scale */
-  --ease-zenix: cubic-bezier(.16, 1, .3, 1);
+  --ease-glass: cubic-bezier(.16, 1, .3, 1);
   --transition-fast: 0.2s cubic-bezier(.16, 1, .3, 1);
   --transition-normal: 0.35s cubic-bezier(.16, 1, .3, 1);
 
@@ -429,7 +429,7 @@ body::after {
   display: none;
   flex-direction: column;
   gap: 28px;
-  animation: fadeInPanel 0.4s var(--ease-zenix);
+  animation: fadeInPanel 0.4s var(--ease-glass);
 }
 
 .tab-panel.active {
@@ -441,7 +441,7 @@ body::after {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Zenix Glass Cards System */
+/* Glass Cards System */
 .glass-card {
   background: var(--bg-glass-card);
   background-image: var(--bg-glass-gradient);
@@ -799,7 +799,7 @@ body::after {
   padding: 24px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s var(--ease-zenix);
+  transition: opacity 0.3s var(--ease-glass);
 }
 
 .modal-overlay.active-modal {
@@ -822,7 +822,7 @@ body::after {
   overflow-y: auto;
   padding: 28px;
   position: relative;
-  animation: modalScaleUp 0.35s var(--ease-zenix);
+  animation: modalScaleUp 0.35s var(--ease-glass);
 }
 
 @keyframes modalScaleUp {
