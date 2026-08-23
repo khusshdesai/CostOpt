@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.5-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.6-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-available-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-1K%2B%20installs-purple" alt="Open VSX Installs"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.1.7-blue" alt="VS Marketplace"></a>
