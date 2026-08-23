@@ -87,10 +87,15 @@ Every request is evaluated by the centralized `DecisionEngine` and assigned one 
 
 The built-in web console operates on `http://127.0.0.1:8000`, featuring a **Zenix Refined Glass** visual theme (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
 
+![CostOpt Zenix Refined Glass Overview](docs/images/dashboard_overview.png)
+
 1. **Overview**: Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
 2. **Spend**: Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
 3. **Optimizations**: Dominant Net Savings hero card, Decision Strategy distribution (`Cache Hits`, `Model Reroutes`, `Direct Execution`), Task Classification breakdown, active optimization engines status cards, and real-time audit activity log.
 4. **Requests**: Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
+
+![CostOpt Decision Intelligence Trace Modal](docs/images/decision_trace_modal.png)
+
 5. **Policies**: Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
 
 ---
