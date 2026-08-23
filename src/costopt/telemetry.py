@@ -64,14 +64,19 @@ class SQLiteTelemetryLogger:
                     )
                 """)
                 # Safe migrations for existing DBs
-                try:
-                    cursor.execute("ALTER TABLE telemetry ADD COLUMN file_path TEXT DEFAULT ''")
-                except Exception:
-                    pass
-                try:
-                    cursor.execute("ALTER TABLE telemetry ADD COLUMN line_number INTEGER DEFAULT 0")
-                except Exception:
-                    pass
+                for col_name, col_type in [
+                    ("file_path", "TEXT DEFAULT ''"),
+                    ("line_number", "INTEGER DEFAULT 0"),
+                    ("task_type", "TEXT DEFAULT 'general_chat'"),
+                    ("complexity", "TEXT DEFAULT 'medium'"),
+                    ("confidence", "REAL DEFAULT 1.0"),
+                    ("decision_reason", "TEXT DEFAULT ''"),
+                    ("decision_trace", "TEXT DEFAULT ''")
+                ]:
+                    try:
+                        cursor.execute(f"ALTER TABLE telemetry ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass
 
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_time ON telemetry (timestamp)")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_success ON telemetry (success)")

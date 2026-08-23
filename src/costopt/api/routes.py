@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, List, Optional
 from costopt.anomaly import AnomalyDetector
@@ -80,6 +81,57 @@ def get_overview(env: Optional[str] = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database aggregation failed: {e}")
 
+@router.get("/optimizations/summary")
+def get_optimizations_summary():
+    """Returns real optimization strategy breakdown from telemetry database."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            
+            # Cache strategy metrics
+            cursor.execute("""
+                SELECT COUNT(*), SUM(savings) 
+                FROM telemetry 
+                WHERE cache_hit = 1
+            """)
+            c_row = cursor.fetchone()
+            cache_count = c_row[0] or 0
+            cache_savings = c_row[1] or 0.0
+
+            # Reroute strategy metrics (model_requested != model_used)
+            cursor.execute("""
+                SELECT COUNT(*), SUM(savings) 
+                FROM telemetry 
+                WHERE cache_hit = 0 AND model_requested != model_used
+            """)
+            r_row = cursor.fetchone()
+            reroute_count = r_row[0] or 0
+            reroute_savings = r_row[1] or 0.0
+
+            # Total requests
+            cursor.execute("SELECT COUNT(*), SUM(savings), SUM(cost_original) FROM telemetry")
+            t_row = cursor.fetchone()
+            total_requests = t_row[0] or 0
+            total_savings = t_row[1] or 0.0
+            baseline_cost = t_row[2] or 0.0
+
+            optimized_requests = cache_count + reroute_count
+            opt_rate = (optimized_requests / total_requests * 100) if total_requests > 0 else 0.0
+
+            return {
+                "total_savings": round(total_savings, 4),
+                "cache_savings": round(cache_savings, 4),
+                "cache_count": cache_count,
+                "reroute_savings": round(reroute_savings, 4),
+                "reroute_count": reroute_count,
+                "total_requests": total_requests,
+                "optimized_requests": optimized_requests,
+                "optimization_rate": round(opt_rate, 1),
+                "baseline_cost": round(baseline_cost, 4)
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/charts/savings")
 def get_savings_chart_data(limit: int = 30):
     """Returns daily cost, baseline cost, and savings metrics for time series plots."""
@@ -112,7 +164,7 @@ def get_savings_chart_data(limit: int = 30):
 
 @router.get("/charts/models")
 def get_model_distribution():
-    """Returns total request counts and actual cost grouped by provider/model."""
+    """Returns total request counts, baseline cost, actual spend, and savings grouped by provider/model."""
     try:
         with _get_connection(_TELEMETRY_DB) as conn:
             cursor = conn.cursor()
@@ -121,7 +173,9 @@ def get_model_distribution():
                     provider,
                     model_used,
                     COUNT(*) as count,
-                    SUM(cost_actual) as spend
+                    SUM(cost_original) as baseline_cost,
+                    SUM(cost_actual) as spend,
+                    SUM(savings) as savings
                 FROM telemetry
                 GROUP BY provider, model_used
                 ORDER BY spend DESC
@@ -229,7 +283,7 @@ def get_anomalies(z_score: float = 2.0):
     anomalies = detector.analyze_daily_cost_anomalies(z_threshold=z_score)
     return anomalies
 
-@router.post("/cache/clear")
+@router.api_route("/cache/clear", methods=["GET", "POST"])
 def clear_cache():
     """Wipes the local cache database."""
     try:
@@ -260,6 +314,85 @@ def get_recent_telemetry(limit: int = 10):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/requests/summary")
+def get_requests_summary():
+    """Returns top summary metrics for the Requests page from real telemetry."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_requests,
+                    SUM(CASE WHEN cache_hit = 1 OR model_requested != model_used THEN 1 ELSE 0 END) as optimized_requests,
+                    SUM(CASE WHEN cache_hit = 1 THEN 1 ELSE 0 END) as cache_hits,
+                    AVG(latency_ms) as avg_latency
+                FROM telemetry
+            """)
+            row = cursor.fetchone()
+            return {
+                "total_requests": row["total_requests"] or 0,
+                "optimized_requests": row["optimized_requests"] or 0,
+                "cache_hits": row["cache_hits"] or 0,
+                "avg_latency": round(row["avg_latency"] or 0.0, 1)
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/requests/list")
+def get_requests_list(
+    search: Optional[str] = None,
+    outcome: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Returns filtered and paginated request telemetry records."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            
+            where_clauses = []
+            params = []
+
+            if search:
+                where_clauses.append("(prompt_hash LIKE ? OR model_requested LIKE ? OR model_used LIKE ? OR request_id LIKE ?)")
+                s_param = f"%{search}%"
+                params.extend([s_param, s_param, s_param, s_param])
+
+            if outcome == 'cache':
+                where_clauses.append("cache_hit = 1")
+            elif outcome == 'reroute':
+                where_clauses.append("cache_hit = 0 AND model_requested != model_used")
+            elif outcome == 'direct':
+                where_clauses.append("cache_hit = 0 AND model_requested = model_used")
+
+            where_str = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+            cursor.execute(f"SELECT COUNT(*) FROM telemetry{where_str}", params)
+            total_count = cursor.fetchone()[0] or 0
+
+            query = f"""
+                SELECT 
+                    timestamp, request_id, provider, model_requested, model_used,
+                    input_tokens, output_tokens, latency_ms, success,
+                    cache_hit, cost_original, cost_actual, savings, prompt_hash,
+                    environment, application, region,
+                    task_type, complexity, confidence, decision_reason, decision_trace
+                FROM telemetry
+                {where_str}
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+            """
+            params.extend([limit, offset])
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+            return {
+                "total_count": total_count,
+                "items": [dict(r) for r in rows]
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/telemetry/generate")
 def inject_simulation_data():
     """Injects 150 mock transactions into the telemetry database."""
@@ -274,7 +407,7 @@ def inject_simulation_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/telemetry/reset")
+@router.api_route("/telemetry/reset", methods=["GET", "POST"])
 def reset_telemetry():
     """Deletes all telemetry records from the database, resetting all cost metrics to zero."""
     try:
@@ -302,72 +435,174 @@ def get_active_config():
         raise HTTPException(status_code=500, detail=str(e))
 
 from pydantic import BaseModel
+
+class ConfigUpdateRequest(BaseModel):
+    content: str
+
+@router.post("/config")
+def update_active_config(req: ConfigUpdateRequest):
+    """Validates and updates costopt.yaml configuration file."""
+    import yaml, os
+    try:
+        parsed = yaml.safe_load(req.content)
+        if not isinstance(parsed, dict):
+            raise ValueError("Configuration YAML must evaluate to a valid dictionary.")
+            
+        config_path = "costopt.yaml"
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(req.content)
+            
+        return {"status": "success", "message": "Configuration saved and applied successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid configuration YAML: {e}")
+
 class SimulationRequest(BaseModel):
     prompt: str
     model: str
 
+def _write_telemetry_direct(record: dict):
+    with _get_connection(_TELEMETRY_DB) as conn:
+        cursor = conn.cursor()
+        
+        # Ensure Phase 3 columns exist
+        for col_name, col_type in [
+            ("file_path", "TEXT DEFAULT ''"),
+            ("line_number", "INTEGER DEFAULT 0"),
+            ("task_type", "TEXT DEFAULT 'general_chat'"),
+            ("complexity", "TEXT DEFAULT 'medium'"),
+            ("confidence", "REAL DEFAULT 1.0"),
+            ("decision_reason", "TEXT DEFAULT ''"),
+            ("decision_trace", "TEXT DEFAULT ''")
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE telemetry ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
+        cursor.execute("""
+            INSERT OR REPLACE INTO telemetry (
+                timestamp, request_id, provider, model_requested, model_used,
+                input_tokens, output_tokens, latency_ms, status_code, success,
+                error_type, cache_hit, cost_original, cost_actual, savings,
+                prompt_hash, environment, application, region, retry_count,
+                file_path, line_number, task_type, complexity, confidence,
+                decision_reason, decision_trace
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            record["timestamp"], record["request_id"], record["provider"], record["model_requested"],
+            record["model_used"], record["input_tokens"], record["output_tokens"], record["latency_ms"],
+            record["status_code"], 1 if record["success"] else 0, record.get("error_type"),
+            1 if record["cache_hit"] else 0, record["cost_original"], record["cost_actual"],
+            record["savings"], record["prompt_hash"], record["environment"], record["application"],
+            record["region"], record.get("retry_count", 0), record.get("file_path", ""), record.get("line_number", 0),
+            record.get("task_type", "general_chat"), record.get("complexity", "medium"), record.get("confidence", 1.0),
+            record.get("decision_reason", ""), json.dumps(record.get("decision_trace", []))
+        ))
+        conn.commit()
+
 @router.post("/simulate")
 def simulate_sdk_call(req: SimulationRequest):
-    """Simulates the SDK cache checks and routing rules for a prompt."""
-    import time
-    logs = []
-    logs.append(f"Intercepting ChatCompletion call for requested model='{req.model}'")
+    """Evaluates prompt using DecisionEngine and records live telemetry."""
+    import hashlib, uuid, json
+    from datetime import datetime, timezone
+    from costopt.optimization import DecisionEngine
     
-    # Check Cache
-    from costopt.cache import SQLiteCache
-    cache = SQLiteCache(_CACHE_DB)
-    logs.append("Step 1: Computing MD5 hash and checking SQLiteCache...")
-    cached_response = cache.get(req.prompt, req.model)
+    prompt_hash = hashlib.md5(req.prompt.encode('utf-8')).hexdigest()
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    req_id = f"sim-{uuid.uuid4().hex[:12]}"
     
-    from costopt.pricing import calculate_cost
+    engine = DecisionEngine(config_path="costopt.yaml", cache_db_path=_CACHE_DB)
+    decision = engine.evaluate(req.prompt, req.model, provider="openai")
     
-    if cached_response:
-        logs.append("Cache HIT! Serving response from local SQLite cache database.")
-        cost_orig = calculate_cost("openai", req.model, 45, 15)
-        cost_act = calculate_cost("openai", req.model, 45, 15, cache_hit=True)
-        savings = cost_orig - cost_act
-        return {
-            "status": "success",
-            "cache_hit": True,
-            "routed": False,
-            "original_model": req.model,
-            "final_model": req.model,
-            "cost_original": round(cost_orig, 6),
-            "cost_actual": round(cost_act, 6),
-            "savings": round(savings, 6),
-            "logs": logs
-        }
-        
-    logs.append("Cache MISS. Evaluating routing rules...")
-    
-    # Check Router
-    from costopt.router import CostOptRouter
-    router_engine = CostOptRouter()
-    target_model = router_engine.match_route(req.prompt, req.model)
-    
-    routed = False
-    if target_model != req.model:
-        logs.append(f"Routing rule match! Redirecting query to cheaper model: '{target_model}'")
-        routed = True
-    else:
-        logs.append(f"No routing rules matched. Executing completion using requested model: '{req.model}'")
-        
-    # Simulated token count cost calculation
-    cost_orig = calculate_cost("openai", req.model, 150, 60)
-    cost_act = calculate_cost("openai", target_model, 150, 60)
-    savings = cost_orig - cost_act
-    
+    # Store completion in cache if miss
+    if not decision.cache_hit:
+        engine.cache_layer.store(req.prompt, req.model, {"id": f"chatcmpl-{uuid.uuid4().hex[:8]}", "choices": [{"message": {"content": f"Simulated response payload for: {req.prompt[:30]}"}}]})
+
+    log_entry = {
+        "timestamp": timestamp,
+        "request_id": req_id,
+        "provider": decision.provider,
+        "model_requested": decision.requested_model,
+        "model_used": decision.selected_model,
+        "input_tokens": 120,
+        "output_tokens": 40,
+        "latency_ms": 12 if decision.cache_hit else (320 if decision.decision == "REROUTE" else 850),
+        "status_code": 200,
+        "success": True,
+        "error_type": None,
+        "cache_hit": decision.cache_hit,
+        "cost_original": decision.estimated_cost_before,
+        "cost_actual": decision.estimated_cost_after,
+        "savings": decision.estimated_savings,
+        "prompt_hash": prompt_hash,
+        "environment": "production",
+        "application": "costopt-simulator",
+        "region": "us-east-1",
+        "retry_count": 0,
+        "file_path": "costopt/simulator.py",
+        "line_number": 42,
+        "task_type": decision.task_type,
+        "complexity": decision.complexity,
+        "confidence": decision.confidence,
+        "decision_reason": decision.reason,
+        "decision_trace": decision.decision_trace
+    }
+    _write_telemetry_direct(log_entry)
+
     return {
         "status": "success",
-        "cache_hit": False,
-        "routed": routed,
-        "original_model": req.model,
-        "final_model": target_model,
-        "cost_original": round(cost_orig, 6),
-        "cost_actual": round(cost_act, 6),
-        "savings": round(savings, 6),
-        "logs": logs
+        "decision": decision.decision,
+        "cache_hit": decision.cache_hit,
+        "routed": decision.decision == "REROUTE",
+        "original_model": decision.requested_model,
+        "final_model": decision.selected_model,
+        "cost_original": decision.estimated_cost_before,
+        "cost_actual": decision.estimated_cost_after,
+        "savings": decision.estimated_savings,
+        "confidence": decision.confidence,
+        "task_type": decision.task_type,
+        "complexity": decision.complexity,
+        "decision_reason": decision.reason,
+        "decision_trace": decision.decision_trace,
+        "logs": decision.decision_trace
     }
+
+@router.get("/intelligence/distribution")
+def get_intelligence_distribution():
+    """Returns task classification and optimization decision distribution stats."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT task_type, COUNT(*) as count 
+                FROM telemetry 
+                GROUP BY task_type 
+                ORDER BY count DESC
+            """)
+            tasks = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT 
+                    SUM(CASE WHEN cache_hit = 1 THEN 1 ELSE 0 END) as cache_hits,
+                    SUM(CASE WHEN cache_hit = 0 AND model_requested != model_used THEN 1 ELSE 0 END) as reroutes,
+                    SUM(CASE WHEN cache_hit = 0 AND model_requested = model_used THEN 1 ELSE 0 END) as direct_requests,
+                    AVG(confidence) as avg_confidence
+                FROM telemetry
+            """)
+            dec_row = cursor.fetchone()
+
+            return {
+                "task_distribution": tasks,
+                "decisions": {
+                    "cache_hits": dec_row["cache_hits"] or 0,
+                    "reroutes": dec_row["reroutes"] or 0,
+                    "direct_requests": dec_row["direct_requests"] or 0,
+                    "avg_confidence": round(dec_row["avg_confidence"] or 1.0, 2)
+                }
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/features")
 def get_feature_attribution():

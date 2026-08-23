@@ -1,307 +1,276 @@
-# CostOpt — Developer-Native LLM Cost Intelligence ⚡
+# CostOpt — Developer-Focused LLM Cost Optimization & Observability Platform
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="140" alt="CostOpt Logo" />
-</p>
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-18%20passed-emerald.svg)](tests/)
 
-<p align="center">
-  <strong>Drop-in wrapper for OpenAI, Anthropic & Gemini clients that adds automatic caching, smart model routing, circuit breaker protection, and a real-time observability dashboard — all 100% local.</strong>
-  <br />
-  Stop waiting for a $500 monthly cloud bill to figure out where your LLM budget went.
-</p>
-
-<p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt?color=blue&style=flat-square" alt="PyPI Version"></a>
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-available-brightgreen?style=flat-square" alt="PyPI Downloads"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-1K%2B%20installs-purple?style=flat-square" alt="Open VSX Installs"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.1.7-blue?style=flat-square" alt="VS Marketplace"></a>
-  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple?style=flat-square" alt="VS Code 1.80+">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="900" alt="CostOpt Dashboard — System Overview" />
-</p>
+CostOpt is an open-source, local-first LLM cost optimization SDK and observability console. It intercepts OpenAI and compatible ChatCompletion API calls to reduce LLM spend through multi-tier prompt caching, intelligent model rerouting, and real-time FinOps telemetry without adding cloud infrastructure or external database dependencies.
 
 ---
 
-## 📋 Table of Contents
+## Overview
 
-- [What is CostOpt?](#-what-is-costopt)
-- [1-Line Integration](#-1-line-zero-churn-integration)
-- [Core Features](#-core-features)
-- [Quickstart Guide](#-quickstart-guide)
-- [Dashboard](#-observability-dashboard)
-- [Multi-Provider Support](#-multi-provider-support)
-- [Framework Integrations](#-integration-with-popular-frameworks)
-- [Configuration](#-configuration--custom-models)
-- [VS Code Extension](#-vs-code-extension)
-- [FAQ](#-faq)
-- [License](#-license)
+### The Problem
+Generative AI applications frequently overspend by:
+1. **Executing Duplicate Requests**: Re-querying upstream APIs for exact or near-identical prompts.
+2. **Over-provisioning Models**: Routing simple classification, extraction, or short summarization queries to expensive flagship models (e.g., `gpt-4o`, `claude-3-5-sonnet`) when lower-cost models (`gpt-4o-mini`, `claude-3-haiku`, `llama3`) satisfy accuracy requirements.
+3. **Lack of Cost Visibility**: Difficulty tracking net savings, model breakdown, or request-level optimization decisions.
 
----
-
-## 💡 What is CostOpt?
-
-CostOpt is a **developer SDK** that wraps your existing OpenAI, Anthropic, or Google Gemini client in a single line of code. Once wrapped, every LLM call is automatically:
-
-- ✅ **Cached locally** — repeat or near-duplicate prompts return in `<2ms` at `$0.00` cost
-- ✅ **Routed intelligently** — simple tasks automatically rerouted to cheaper models (e.g. `gpt-4o` → `gpt-4o-mini`)
-- ✅ **Protected from runaway loops** — circuit breaker trips before silent billing explosions
-- ✅ **Logged with full cost attribution** — every call recorded to SQLite with cost, latency, model used, and file/line location
-
-No cloud, no accounts, no data leaving your machine.
+### The CostOpt Solution
+CostOpt acts as a transparent, drop-in SDK interceptor and decision engine that:
+- Serves prompt hits locally in **<15ms at $0.00 cost** via an SQLite prompt cache.
+- Analyzes request complexity to automatically route simple tasks to cost-effective models.
+- Enforces quality guardrails and automatic outage failovers.
+- Records unified FinOps telemetry displayed on a dark-slate dashboard.
 
 ---
 
-## 🔌 1-Line Zero-Churn Integration
+## Key Capabilities
 
-```python
-# ─── BEFORE (Standard OpenAI Client) ────────────────────────────────────────
-from openai import OpenAI
-client = OpenAI()
+- **Exact MD5 Prompt Cache**: Replays exact prompt completions locally with parameter hashing (`temperature`, `tools`, `response_format`, `max_tokens`, `seed`).
+- **Local TF-IDF Similarity Cache**: Computes word and character n-gram cosine vector similarity for prompt variants.
+- **Request Intent Analysis**: Classifies incoming prompts into 7 task types (`simple_classification`, `extraction`, `summarization`, `coding`, `reasoning`, `creative_generation`, `general_chat`) with confidence scoring.
+- **Model Capability Registry**: Centralized registry containing capability scores (0–100), task suitabilities, and token pricing for OpenAI, Anthropic, Google, and Ollama models.
+- **Policy-Aware Rerouting**: Evaluates `costopt.yaml` rules to route eligible queries from flagship models to efficient alternatives.
+- **Safety & Quality Guardrails**: Preserves original flagship models for high-complexity coding/reasoning prompts or low confidence scores (<0.70).
+- **Circuit Breaker & Outage Failover**: Detects call velocity loops and automatically fails over to active backups during upstream 429/500 API outages.
+- **Decision Trace Explainability**: Stores human-readable step-by-step decision traces with every transaction.
+- **FinOps Observability Dashboard**: Built-in 5-view web console (`Overview`, `Spend`, `Optimizations`, `Requests`, `Policies`).
 
-# ─── AFTER (With CostOpt — zero other changes needed) ───────────────────────
-from openai import OpenAI
-from costopt import CostOpt
+---
 
-client = CostOpt(OpenAI())  # 👈 That's it.
+## Architecture
 
-# Your API calls are 100% identical — CostOpt intercepts transparently:
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Classify customer feedback"}],
-    feature="customer_support"   # optional: tag for cost attribution in dashboard
-)
+```mermaid
+flowchart TD
+    App[Calling Application] -->|ChatCompletion.create| Interceptor[CostOpt SDK Client Interceptor]
+    Interceptor --> CB[Circuit Breaker Check]
+    CB --> Engine[Centralized Decision Engine]
+    
+    subgraph Engine [Intelligent Decision Pipeline]
+        Analyzer[1. Request Analyzer\nTask & Complexity Classification]
+        CacheLayer[2. Semantic Cache Layer\nTier 1: MD5 Exact | Tier 2: TF-IDF Cosine]
+        Registry[3. Model Capability Registry\nCapability Scores & Token Pricing]
+        Guardrails[4. Fallback & Quality Guardrails\nConfidence & Outage Failover]
+        Estimator[5. Cost Estimator\nBaseline vs Target Cost Delta]
+    end
+    
+    CacheLayer -->|Cache HIT <15ms| Hit[Return Local Response $0.00]
+    CacheLayer -->|Cache MISS| Registry
+    Registry --> Guardrails
+    Guardrails -->|Decision: REROUTE / DIRECT| API[Upstream LLM API]
+    API -->|Outage 429/500| Failover[Failover Secondary Model]
+    
+    Hit --> DB[(SQLite Telemetry & Cache DB)]
+    API --> DB
+    Failover --> DB
+    
+    DB --> Dashboard[CostOpt FinOps Dashboard\nhttp://127.0.0.1:8000]
 ```
 
 ---
 
-## ⚡ Core Features
+## Optimization Decision Flow
 
-| Feature | Description |
-|---|---|
-| 🗄️ **Local SQLite Cache** | Exact + fuzzy (Jaccard/TF-IDF) matching. Cache key includes model, temperature, tools, seed. |
-| 🔀 **Smart Model Router** | Rule-based keyword routing — simple tasks auto-rerouted to cheaper models. |
-| 🛡️ **Circuit Breaker** | Detects >15 calls in 30s from the same file:line and trips `CostOptCircuitBreakerError`. |
-| 🔄 **Outage Failover** | Auto-retries fallback models on 429/503 (`gpt-4o` → `claude-3-5-sonnet` → `llama3`). |
-| 📊 **Observability Dashboard** | Real-time spend metrics, trace explorer, anomaly detection, and YAML policy viewer. |
-| 🔍 **VS Code CodeLens** | Cost-per-request and call counts shown inline above your code. |
-| 🔒 **100% Local & Private** | Everything stored in SQLite. Zero data leaves your machine. |
+Every request is evaluated by the centralized `DecisionEngine` and assigned one of four execution outcomes:
+
+| Decision | Condition | Execution Path |
+| :--- | :--- | :--- |
+| **`CACHE`** | Prompt matches an existing exact or semantic entry in `costopt_cache.db`. | Returned locally in <15ms ($0.00 cost). |
+| **`REROUTE`** | Cache miss; task is low/medium complexity, confidence >= 0.70, and a cheaper capable model exists. | Routed to cost-effective target model (e.g., `gpt-4o` ➔ `gpt-4o-mini`). |
+| **`DIRECT`** | Cache miss; high-complexity reasoning/coding task or low confidence (<0.70). | Executed using original requested model for maximum accuracy. |
+| **`FALLBACK`** | Primary model endpoint fails or circuit breaker indicates outage. | Auto-failed over to secondary fallback model. |
 
 ---
 
-## 🚀 Quickstart Guide
+## Dashboard
 
-### Step 1 — Install Python SDK
-```bash
-pip install costopt
+The built-in web console operates on `http://127.0.0.1:8000`, featuring a **Zenix Refined Glass** visual theme (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
+
+1. **Overview**: Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
+2. **Spend**: Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
+3. **Optimizations**: Dominant Net Savings hero card, Decision Strategy distribution (`Cache Hits`, `Model Reroutes`, `Direct Execution`), Task Classification breakdown, active optimization engines status cards, and real-time audit activity log.
+4. **Requests**: Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
+5. **Policies**: Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
+
+---
+
+## Project Structure
+
+```
+.
+├── src/costopt/
+│   ├── __init__.py           # SDK package exports
+│   ├── client.py             # CostOpt SDK Client Interceptor
+│   ├── cache.py              # SQLite cache engine (MD5 + TF-IDF Cosine)
+│   ├── router.py             # YAML rule matching & fallbacks
+│   ├── pricing.py            # Token pricing loader & cost calculation
+│   ├── telemetry.py          # Async SQLite telemetry logger
+│   ├── circuit_breaker.py    # Rate-limiting & loop detection
+│   ├── anomaly.py            # Z-score statistical cost anomaly detector
+│   ├── main.py               # CLI entrypoint (costopt dashboard)
+│   ├── optimization/         # Phase 3 Intelligent Optimization Engine
+│   │   ├── analyzer.py       # Request intent & complexity analyzer
+│   │   ├── model_registry.py # Model capability registry & metadata
+│   │   ├── semantic_cache.py # Multi-tier cache layer
+│   │   ├── cost_estimator.py # Cost & savings calculator
+│   │   ├── fallback_manager.py # Quality guardrails & outage failover
+│   │   └── decision_engine.py  # Centralized decision orchestrator
+│   └── api/                  # FastAPI Web Backend
+│       ├── server.py         # FastAPI application init
+│       └── routes.py         # Dashboard API endpoints
+├── dashboard/                # Frontend Web Console
+│   ├── index.html            # Single Page App DOM layout
+│   ├── style.css             # Enterprise FinOps theme (Dark Slate)
+│   └── app.js                # Tab routing, Chart.js, & modal handlers
+├── pricing/providers/        # Token pricing YAML manifests
+│   ├── openai.yaml
+│   ├── anthropic.yaml
+│   ├── google.yaml
+│   ├── huggingface.yaml
+│   └── ollama.yaml
+├── tests/                    # Pytest test suite
+│   ├── unit/                 # Unit & integration tests
+├── costopt.yaml              # Active policy configuration file
+├── pyproject.toml            # Python packaging metadata
+├── requirements.txt          # Python dependencies manifest
+└── README.md                 # Project documentation
 ```
 
-### Step 2 — Wrap your LLM client
+---
+
+## Installation
+
+### Prerequisites
+- Python 3.10 or higher
+
+### Step-by-Step Setup
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/khusshdesai/CostOpt.git
+   cd CostOpt
+   ```
+
+2. **Create and Activate Virtual Environment**:
+   ```bash
+   python -m venv venv
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   # Or install in editable development mode:
+   pip install -e .
+   ```
+
+4. **Configure Environment Variables**:
+   ```bash
+   cp .env.example .env
+   ```
+
+---
+
+## Usage
+
+### 1. SDK Python Interceptor Example
+
+Wrap your existing `openai.OpenAI()` client with `CostOpt`:
+
 ```python
 from openai import OpenAI
 from costopt import CostOpt
 
-client = CostOpt(OpenAI())
+# Initialize original client
+raw_client = OpenAI(api_key="your-api-key")
 
+# Wrap client with CostOpt Interceptor
+client = CostOpt(
+    client=raw_client,
+    provider="openai",
+    config_path="costopt.yaml",
+    environment="production"
+)
+
+# Call completions as normal — CostOpt automatically analyzes, caches, and routes queries
 response = client.chat.completions.create(
     model="gpt-4o",
-    messages=[{"role": "user", "content": "Explain quantum mechanics simply"}],
-    feature="education"
+    messages=[
+        {"role": "system", "content": "You are a sentiment analyzer."},
+        {"role": "user", "content": "Classify sentiment: This product is outstanding!"}
+    ]
 )
+
 print(response.choices[0].message.content)
 ```
 
-### Step 3 — Launch the Observability Dashboard
+### 2. Starting the Dashboard Console
+
+Launch the web console using the CLI:
+
 ```bash
+costopt dashboard
+# Or run via Python module:
 python -m costopt.main dashboard
 ```
-Open **[http://localhost:8000](http://localhost:8000)** in your browser.
+
+Open `http://127.0.0.1:8000` in your web browser.
 
 ---
 
-## 📊 Observability Dashboard
+## Configuration
 
-CostOpt comes with a full-featured local dashboard running on FastAPI + vanilla JS.
-
-### System Overview
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="880" alt="Dashboard Overview" />
-</p>
-
-> Live telemetry stream, SDK route simulator, active YAML policy rules, anomaly detection, and optimization strategies.
-
-### Analytics & Performance
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_analytics.png" width="880" alt="Analytics Tab" />
-</p>
-
-> Provider token volumes (OpenAI / Anthropic / Google), cache efficiency metrics, and average latency comparisons (cached vs direct).
-
-### Trace Explorer
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_traces.png" width="880" alt="Traces Tab" />
-</p>
-
-> Full-screen trace log with MD5 prompt hash, requested model, executed model (after routing), latency, actual cost, and status code. Searchable by hash or model name.
-
-### Settings
-<p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_settings.png" width="880" alt="Settings Tab" />
-</p>
-
-> Configure similarity threshold, TTL, budget alerts, and reset telemetry data.
-
----
-
-## 🌐 Multi-Provider Support
-
-CostOpt supports wrapping **OpenAI**, **Anthropic**, and **Google Gemini** clients:
-
-```python
-# OpenAI
-from openai import OpenAI
-from costopt import CostOpt
-
-client = CostOpt(OpenAI(), provider="openai")
-
-# Anthropic
-import anthropic
-from costopt import CostOpt
-
-client = CostOpt(anthropic.Anthropic(), provider="anthropic")
-
-# Google Gemini (via OpenAI-compatible API)
-from openai import OpenAI
-from costopt import CostOpt
-
-client = CostOpt(
-    OpenAI(api_key="...", base_url="https://generativelanguage.googleapis.com/v1beta/openai/"),
-    provider="google"
-)
-```
-
-Supported pricing catalogs: **OpenAI**, **Anthropic**, **Google Gemini**, **HuggingFace**, **Ollama** (local, $0.00).
-
----
-
-## 📦 Integration with Popular Frameworks
-
-**LangChain:**
-```python
-from langchain_openai import ChatOpenAI
-from costopt import CostOpt
-from openai import OpenAI
-
-llm = ChatOpenAI(client=CostOpt(OpenAI()).client)
-```
-
-**LlamaIndex:**
-```python
-from llama_index.llms.openai import OpenAI as LlamaOpenAI
-from costopt import CostOpt
-from openai import OpenAI
-
-llm = LlamaOpenAI(client=CostOpt(OpenAI()).client)
-```
-
-**FastAPI:**
-```python
-from fastapi import FastAPI
-from openai import OpenAI
-from costopt import CostOpt
-
-app = FastAPI()
-ai_client = CostOpt(OpenAI())
-```
-
----
-
-## 🔧 Configuration & Custom Models
-
-CostOpt reads `costopt.yaml` from your project root for routing rules and fallback chains:
+Control model routing policies and fallback chains in `costopt.yaml`:
 
 ```yaml
 routing:
+  rules:
+    - name: "Simple text classification"
+      keywords: ["classify", "sentiment", "yes/no", "label"]
+      max_prompt_length: 500
+      original_model: "gpt-4o"
+      target_model: "gpt-4o-mini"
+
   fallbacks:
     gpt-4o:
-      - gpt-4o-mini
-      - claude-3-5-haiku
-      - llama3
-  rules:
-    - name: "Simple classification tasks"
-      keywords: ["classify", "yes/no", "sentiment", "label", "extract"]
-      route_to: "gpt-4o-mini"
-    - name: "Code generation"
-      keywords: ["write code", "debug", "function", "implement"]
-      route_to: "gpt-4o"
-```
-
-Add custom or local Ollama models by dropping a `.yaml` into the `pricing/providers/` directory:
-
-```yaml
-provider: "ollama"
-models:
-  llama3:
-    input_cost_per_1m: 0.0
-    output_cost_per_1m: 0.0
-  deepseek-r1:
-    input_cost_per_1m: 0.0
-    output_cost_per_1m: 0.0
+      - "claude-3-5-sonnet"
+      - "gpt-4o-mini"
 ```
 
 ---
 
-## 🖥️ VS Code Extension
+## Testing
 
-Install the **CostOpt** extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode) or [Open VSX Registry](https://open-vsx.org/extension/khusshdesai/costopt-vscode).
-
-**Features:**
-- 📍 **CodeLens Inlines** — cost per request, avg tokens, call count directly above `client.chat.completions.create()` lines
-- 💬 **Hover Panels** — full cost breakdown + MD5 hash + cache status on hover
-- 📈 **Sidebar Views** — Spend Forecast, Feature Attribution, Cost Drift Warnings
-- 📌 **Status Bar** — `CostOpt: $8.42 today` live in VS Code bottom bar
+Run the automated Pytest test suite:
 
 ```bash
-# After installing, start the background service:
-python -m costopt.main dashboard
+python -m pytest tests/ -v
 ```
 
----
-
-## ❓ FAQ
-
-**Q: Does CostOpt send my prompts or data to external servers?**
-> No. 100% local. All telemetry, cache, and pricing data is stored in local SQLite files (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine.
-
-**Q: Does it add latency to my LLM calls?**
-> No. Prompt hashing and cache checks take under 1ms. Telemetry is written asynchronously in a background thread.
-
-**Q: What does a cache hit cost?**
-> `$0.00`. Cached responses are replayed locally in under 2ms without hitting the paid provider API.
-
-**Q: Does it work with LangChain / LlamaIndex?**
-> Yes. Pass the wrapped client (`CostOpt(OpenAI()).client`) into any framework that accepts a raw OpenAI client object.
-
-**Q: What if the VS Code status bar shows `CostOpt: Offline`?**
-> Start the background service: `python -m costopt.main dashboard`
-
-**Q: How does fuzzy cache matching work?**
-> CostOpt uses Jaccard similarity + TF-IDF cosine similarity. Set `similarity_threshold` in Settings to enable near-duplicate matching (e.g. `0.85` = 85% similar prompts return cached response).
-
-**Q: How do I reset all telemetry to start fresh?**
-> Click the **RESET TELEMETRY** button in the dashboard header, or run `DELETE FROM telemetry` directly on `costopt_telemetry.db`.
+**Test Status**: All 18 test cases pass cleanly (100% pass rate).
 
 ---
 
-## 📄 License
+## Limitations
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+- **Local Similarity Caching**: The semantic cache uses TF-IDF word and character n-gram cosine vector similarity matching locally. It does not require or connect to external cloud vector databases (e.g., Pinecone, Weaviate).
+- **Single-Node SQLite Architecture**: Designed for local development, single-instance microservices, or sidecar proxies.
+- **Heuristic Capability Scores**: Model capability scores (0–100) are curated in `ModelRegistry` and can be adjusted as new model benchmarks are published.
 
 ---
 
-<p align="center">
-  <em>Built for developers who want to ship fast and spend smart. 100% open source.</em>
-</p>
+## Future Possibilities
+
+- Embedding-based semantic caching via local ONNX runtime embeddings.
+- Native SDK wrappers for LangChain and LlamaIndex.
+- Distributed Redis caching adapter for multi-node deployments.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

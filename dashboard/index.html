@@ -3,401 +3,645 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LLM CostOpt — Developer Observability & Optimization Console</title>
+  <title>CostOpt — FinOps & AI Observability Console</title>
   
-  <!-- Fonts -->
+  <!-- Fonts: Outfit (Display & Headings), Inter (UI & Body), JetBrains Mono (Technical Values) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="app-container">
-    <div class="radial-glow glow-1"></div>
-    <div class="radial-glow glow-2"></div>
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR SHELL (270px) -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand-container" id="btn-brand-home">
+          <div class="brand-logo-wrapper">
+            <img id="header-logo" src="/static/logo.png" class="brand-logo" alt="CostOpt Logo" />
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">CostOpt</span>
+            <span class="brand-subtitle">FinOps & AI Observability</span>
+          </div>
+        </div>
 
-    <!-- Stitch-aligned Header -->
-    <header class="main-header glass-panel">
-      <div class="brand" id="btn-brand-home" style="cursor: pointer;" title="Click to Refresh Dashboard">
-        <img id="header-logo" src="/static/logo.png" style="width:38px; height:38px; border-radius:9px; vertical-align:middle; object-fit:contain; transition: transform 0.4s ease;" alt="CostOpt Logo" />
-        <h1 style="display:inline-block; vertical-align:middle; margin-left:10px; font-size:1.4rem;">CostOpt</h1>
+        <!-- Navigation Tabs -->
+        <nav class="sidebar-nav">
+          <a data-tab="overview" class="nav-item active">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span>Overview</span>
+          </a>
+
+          <a data-tab="spend" class="nav-item">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>Spend</span>
+          </a>
+
+          <a data-tab="optimizations" class="nav-item">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Optimizations</span>
+          </a>
+
+          <a data-tab="requests" class="nav-item">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span>Requests</span>
+          </a>
+
+          <a data-tab="policies" class="nav-item">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Policies</span>
+          </a>
+        </nav>
       </div>
+
+      <!-- Engine Status Badge in Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="engine-badge">
+          <span class="status-pulse-dot"></span>
+          <div class="engine-info">
+            <span class="engine-title">Decision Engine Active</span>
+            <span class="engine-sub">SQLite WAL • 6 Models</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT SHELL -->
+    <div class="main-shell">
       
-      <!-- Interactive Top Navigation Links -->
-      <nav class="nav-links">
-        <a data-tab="dashboard" class="active">Dashboard</a>
-        <a data-tab="analytics">Analytics</a>
-        <a data-tab="costs">Costs</a>
-        <a data-tab="traces">Traces</a>
-        <a data-tab="settings">Settings</a>
-      </nav>
+      <!-- TOP STICKY HEADER -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 class="page-title" id="page-title-heading">Optimization Overview</h1>
+          <p class="page-subtitle" id="page-subtitle-text">Monitor your LLM spend, savings, and optimization decision activity</p>
+        </div>
 
-      <!-- Right Header Actions -->
-      <div class="right-header">
-        <span class="sdk-badge"><span class="dot"></span>SDK Active</span>
-        <button id="btn-deploy-sdk" class="btn btn-outlined btn-deploy">Deploy SDK</button>
-        <span id="btn-notifications" class="icon-btn" title="Notifications & Alerts">🔔</span>
-        <span id="btn-settings-gear" class="icon-btn" title="System Settings">⚙️</span>
-        <div id="btn-profile-avatar" class="profile-avatar" title="Developer Profile"></div>
-      </div>
-    </header>
+        <div class="header-right">
+          <div class="status-chip">
+            <span class="status-dot"></span>
+            <span>SDK Interceptor Live</span>
+          </div>
+          <span id="last-synced-label" class="synced-label">Last synced: Just now</span>
+          <button id="btn-refresh" class="btn btn-glass-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 3.77-8.57L2 10"/></svg>
+            <span>Sync Analytics</span>
+          </button>
+        </div>
+      </header>
 
-    <!-- Subheader Banner -->
-    <div class="subheader-bar">
-      <div class="subheader-title">
-        <h2 id="view-title">System Overview</h2>
-        <p class="status-sub">Status: <span class="text-green">Active</span> | Trace ID: <span class="fira-code">0x8F92A</span></p>
-      </div>
-      <div class="header-actions">
-        <button id="btn-generate-sim" class="btn btn-secondary">INJECT SIM DATA</button>
-        <button id="btn-clear-cache" class="btn btn-secondary">CLEAR CACHE</button>
-        <button id="btn-reset-telemetry" class="btn btn-secondary" style="color:var(--accent-rose, #f87171); border-color:var(--accent-rose, #f87171);">RESET TELEMETRY</button>
-        <button id="btn-refresh" class="btn btn-primary">SYNC ANALYTICS</button>
-      </div>
-    </div>
+      <!-- CONTENT AREA CONTAINING ALL 5 TAB PANELS -->
+      <main class="content-area">
 
-    <!-- TAB VIEW 1: DASHBOARD -->
-    <div id="view-dashboard" class="tab-view active">
-      <!-- Dual Column Main Layout Grid -->
-      <div class="main-grid">
-        <!-- COLUMN 1 (LEFT): SIMULATOR & LOGS -->
-        <section class="left-column">
-          <!-- Interceptor Sim -->
-          <div class="console-panel glass-panel">
-            <div class="panel-header">
-              <span class="panel-icon">📼</span>
-              <h2>SDK INTERCEPTOR SIM</h2>
+        <!-- PAGE 1: OVERVIEW -->
+        <div id="view-overview" class="tab-panel active">
+          
+          <!-- HERO SAVINGS CARD -->
+          <div class="hero-glass-card">
+            <div class="hero-header">
+              <div>
+                <span class="hero-title-tag">Net Financial Impact</span>
+                <div class="hero-display-amount" id="kpi-total-savings">$0.00</div>
+                <p class="hero-subtitle">Saved through intelligent model routing and prompt completion caching.</p>
+              </div>
+
+              <div class="hero-badges-row">
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Baseline Cost:</span>
+                  <span class="hero-chip-val" id="kpi-baseline-spend">$0.00</span>
+                </div>
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Actual Spend:</span>
+                  <span class="hero-chip-val" id="kpi-total-spend">$0.00</span>
+                </div>
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Savings Rate:</span>
+                  <span class="hero-chip-val text-success" id="kpi-savings-rate">0.0%</span>
+                </div>
+              </div>
             </div>
-            <p style="font-size:0.75rem; color:var(--text-muted, #6b7280); margin: -4px 0 12px 0; padding: 0 4px;">Simulates SDK cache &amp; routing decisions. No real API call is made.</p>
+
+            <!-- Hero Trend Chart -->
+            <div style="height: 260px; width: 100%; position: relative; margin-top: 8px;">
+              <canvas id="overview-spend-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- BENTO METRICS GRID (4 CARDS) -->
+          <div class="bento-grid">
             
-            <div class="simulator-body">
-              <div class="form-group">
-                <label for="sim-model">Target Model</label>
-                <select id="sim-model">
-                  <!-- Dynamically populated -->
-                </select>
+            <div class="bento-card">
+              <span class="bento-label">Actual Spend</span>
+              <div class="bento-val" id="kpi-total-spend-bento">$0.00</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span class="bento-sub">Net API spend via CostOpt</span>
+                <span class="badge badge-info">LIVE</span>
               </div>
-              
-              <div class="form-group">
-                <label for="sim-prompt">Input Prompt</label>
-                <textarea id="sim-prompt" placeholder="Enter prompt to test intercept (e.g. Please classify this review...)" rows="4"></textarea>
-              </div>
+            </div>
 
-              <button id="btn-run-sim" class="btn btn-outlined btn-run-intercept">▶ RUN INTERCEPT TEST</button>
+            <div class="bento-card">
+              <span class="bento-label">Efficiency Gain</span>
+              <div class="bento-val text-success" id="kpi-savings-context">0.0%</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span class="bento-sub">Cost reduction ratio</span>
+                <span class="badge badge-success">OPTIMIZED</span>
+              </div>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Optimization Opportunities</span>
+              <div class="bento-val text-warning" id="kpi-opportunities">$0.00</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span class="bento-sub">Est. unrealized savings</span>
+                <span class="badge badge-warning">ACTIONABLE</span>
+              </div>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">System Health</span>
+              <div class="bento-val text-success">100%</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span class="bento-sub">SQLite WAL • Engine Active</span>
+                <span class="badge badge-success">HEALTHY</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SECONDARY BENTO ROW (TOP OPPORTUNITY & ANOMALIES) -->
+          <div class="bento-2col">
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Top Optimization Opportunity</h3>
+                  <span class="card-subtitle">Highest impact FinOps action detected</span>
+                </div>
+              </div>
+              <div id="overview-top-recommendation">
+                <div class="empty-state">
+                  <div style="font-weight: 500; color: var(--text-secondary);">No optimization opportunities detected</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Current request traffic is being optimized effectively.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Cost Variance Anomalies</h3>
+                  <span class="card-subtitle">Unexpected spend variance flags</span>
+                </div>
+              </div>
+              <div id="overview-anomalies-list">
+                <div class="empty-state">
+                  <div style="font-weight: 500; color: var(--text-secondary);">No active anomalies</div>
+                  <div style="font-size: 11px; margin-top: 2px;">Recent spend is within expected statistical range.</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Monospace Trace Logs -->
-          <div class="console-panel glass-panel logs-panel">
-            <div class="panel-header">
-              <span class="panel-icon">🖥️</span>
-              <h2>TRACE LOGS</h2>
-              <span id="sim-status-badge" class="badge-status">IDLE</span>
-            </div>
-            <div class="terminal-screen" id="sim-terminal">
-              <div class="terminal-line muted">// Interceptor logs will output here after simulation runs...</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- COLUMN 2 (RIGHT): OBSERVABILITY METRICS & TABLE -->
-        <section class="right-column">
-          <!-- Metrics Row -->
-          <div class="metrics-subgrid">
-            <div class="metric-card glass-panel card-glow-indigo">
-              <div class="card-content">
-                <div class="metric-info">
-                  <h3>ACTUAL SPEND (1K)</h3>
-                  <div class="metric-value" id="val-actual-cost">$0.00</div>
-                  <div class="metric-subtext">Original: <span id="val-baseline-cost">$0.00</span></div>
-                </div>
-                <div class="metric-icon">💰</div>
-              </div>
-            </div>
-
-            <div class="metric-card glass-panel card-glow-green">
-              <div class="card-content">
-                <div class="metric-info">
-                  <h3>NET SAVINGS</h3>
-                  <div class="metric-value text-green" id="val-savings">$0.00</div>
-                  <div class="metric-subtext"><span id="val-savings-pct">0.0%</span> saved via SDK</div>
-                </div>
-                <div class="metric-icon">📈</div>
-              </div>
-            </div>
-
-            <div class="metric-card glass-panel card-glow-cyan">
-              <div class="card-content">
-                <div class="metric-info">
-                  <h3>GLOBAL CACHE HITS</h3>
-                  <div class="metric-value" id="val-cache-rate">0.0%</div>
-                  <div class="metric-subtext">Hits: <span id="val-cache-hits">0</span> items</div>
-                </div>
-                <div class="metric-icon">⚡</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Live Telemetry Stream Table -->
-          <div class="log-explorer glass-panel">
+          <!-- RECENT ACTIVITY TABLE -->
+          <div class="glass-card">
             <div class="card-header">
-              <div class="card-header-info">
-                <h2>📜 LIVE TELEMETRY STREAM</h2>
+              <div>
+                <h3 class="card-title">Recent Telemetry Feed</h3>
+                <span class="card-subtitle">Latest 5 intercepted LLM API calls</span>
               </div>
             </div>
-            <div class="log-table-container">
-              <table class="log-table">
+            <div class="data-table-container">
+              <table class="data-table">
                 <thead>
                   <tr>
                     <th>Timestamp</th>
-                    <th>MD5 Hash</th>
-                    <th>Original Model</th>
-                    <th>Used Model</th>
-                    <th>Actual Cost</th>
+                    <th>Prompt Hash</th>
+                    <th>Requested Model</th>
+                    <th>Executed Model</th>
+                    <th>Latency</th>
+                    <th>Cost</th>
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody id="telemetry-log-rows">
-                  <!-- Dynamically populated -->
+                <tbody id="overview-activity-table">
+                  <tr><td colspan="7" class="empty-state">No telemetry transactions recorded yet.</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
-        </section>
-      </div>
 
-      <!-- Bottom Optimization Strategies, Config & Anomalies -->
-      <div class="bottom-grid">
-        <div class="detail-panel glass-panel">
-          <div class="panel-header">
-            <h2>💡 Active Optimization Strategies</h2>
-            <p>Actionable, evidence-backed saving recommendations detected from log stream</p>
-          </div>
-          <div class="recommendations-list" id="recommendations-list">
-            <div class="loading-state">Evaluating telemetry logs...</div>
-          </div>
         </div>
 
-        <div class="detail-panel glass-panel config-panel">
-          <div class="panel-header">
-            <h2>⚙️ Active costopt.yaml Policy Rules</h2>
-            <p>Active model rerouting parameters and fallback sequences loaded into the client runtime</p>
+
+        <!-- PAGE 2: SPEND -->
+        <div id="view-spend" class="tab-panel">
+          
+          <!-- SPEND HERO CARD -->
+          <div class="hero-glass-card">
+            <div class="hero-header">
+              <div>
+                <span class="hero-title-tag">Actual LLM Spend</span>
+                <div class="hero-display-amount" id="spend-kpi-actual" style="color: var(--text-primary);">$0.00</div>
+                <p class="hero-subtitle">Net financial outlay after CostOpt optimization algorithms.</p>
+              </div>
+
+              <div class="hero-badges-row">
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Baseline Cost:</span>
+                  <span class="hero-chip-val" id="spend-kpi-baseline">$0.00</span>
+                </div>
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Total Savings:</span>
+                  <span class="hero-chip-val text-success" id="spend-kpi-savings">$0.00</span>
+                </div>
+                <div class="hero-chip">
+                  <span class="hero-chip-label">Cost Reduction:</span>
+                  <span class="hero-chip-val text-success" id="spend-kpi-rate">0.0%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spend Time Chart -->
+            <div style="height: 280px; width: 100%; position: relative;">
+              <canvas id="spend-time-chart"></canvas>
+            </div>
           </div>
-          <pre class="yaml-viewer"><code id="config-code-block" class="fira-code">loading costopt.yaml...</code></pre>
+
+          <!-- SPEND BENTO DISTRIBUTION GRID -->
+          <div class="bento-2col">
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Spend by Model</h3>
+                  <span class="card-subtitle">Actual spend distribution across models</span>
+                </div>
+              </div>
+              <div id="spend-by-model-container">
+                <div class="empty-state">No spend data available.</div>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Spend by Provider</h3>
+                  <span class="card-subtitle">Actual spend distribution across providers</span>
+                </div>
+              </div>
+              <div id="spend-by-provider-container">
+                <div class="empty-state">No provider data available.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODEL COST BREAKDOWN TABLE -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Model Cost Breakdown</h3>
+                <span class="card-subtitle">Operational usage, cost, and savings breakdown per model</span>
+              </div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Provider</th>
+                    <th style="text-align: right;">Request Count</th>
+                    <th style="text-align: right;">Baseline Cost</th>
+                    <th style="text-align: right;">Actual Cost</th>
+                    <th style="text-align: right;">Savings</th>
+                    <th style="text-align: right;">Savings Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="spend-model-table-body">
+                  <tr><td colspan="7" class="empty-state">No model usage recorded.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
-        <div class="detail-panel glass-panel">
-          <div class="panel-header">
-            <h2>🚨 Anomaly & Cost Spikes</h2>
-            <p>Unusual activity flagged by statistical Z-score checks</p>
+
+        <!-- PAGE 3: OPTIMIZATIONS -->
+        <div id="view-optimizations" class="tab-panel">
+          
+          <!-- OPTIMIZATIONS HERO BENTO RIBBON -->
+          <div class="bento-grid">
+            <div class="bento-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(18, 22, 32, 0.7) 100%); border-color: rgba(16, 185, 129, 0.3);">
+              <span class="bento-label text-success">Total Net Savings</span>
+              <div class="bento-val text-success" id="opt-kpi-total-savings">$0.00</div>
+              <span class="bento-sub">Net savings generated by CostOpt</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Cache Savings</span>
+              <div class="bento-val text-success" id="opt-kpi-cache-savings">$0.00</div>
+              <span class="bento-sub"><strong id="opt-kpi-cache-count" class="mono-text">0</strong> requests served from cache</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Reroute Savings</span>
+              <div class="bento-val text-success" id="opt-kpi-reroute-savings">$0.00</div>
+              <span class="bento-sub"><strong id="opt-kpi-reroute-count" class="mono-text">0</strong> requests model-rerouted</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Optimization Rate</span>
+              <div class="bento-val text-success" id="opt-kpi-rate">0.0%</div>
+              <span class="bento-sub"><strong id="opt-kpi-optimized-count">0</strong> of <strong id="opt-kpi-total-count">0</strong> optimized</span>
+            </div>
           </div>
-          <div class="anomalies-list" id="anomalies-list">
-            <div class="loading-state">Checking baseline thresholds...</div>
+
+          <!-- DECISION INTELLIGENCE DISTRIBUTIONS -->
+          <div class="bento-2col">
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Decision Strategy Distribution</h3>
+                  <span class="card-subtitle">Execution strategy selected by DecisionEngine</span>
+                </div>
+              </div>
+              <div id="opt-decision-dist-container">
+                <div class="empty-state">Loading decision stats...</div>
+              </div>
+            </div>
+
+            <div class="glass-card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Task Classification Breakdown</h3>
+                  <span class="card-subtitle">Request intent classification by RequestAnalyzer</span>
+                </div>
+              </div>
+              <div id="opt-task-dist-container">
+                <div class="empty-state">Loading classification stats...</div>
+              </div>
+            </div>
           </div>
+
+          <!-- ACTIVE OPTIMIZATION ENGINES -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Active Optimization Strategies</h3>
+                <span class="card-subtitle">Operational status of active intelligence layers</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px;" id="opt-strategies-container">
+              <div class="empty-state">Loading active optimization engines...</div>
+            </div>
+          </div>
+
+          <!-- OPTIMIZATION ACTIVITY LOG TABLE -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Optimization Activity Log</h3>
+                <span class="card-subtitle">Real-time audit log of local optimization decisions</span>
+              </div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Requested Model</th>
+                    <th>Executed Model</th>
+                    <th>Optimization Type</th>
+                    <th style="text-align: right;">Cost Before</th>
+                    <th style="text-align: right;">Cost After</th>
+                    <th style="text-align: right;">Savings</th>
+                  </tr>
+                </thead>
+                <tbody id="opt-activity-table-body">
+                  <tr><td colspan="7" class="empty-state">No optimization events recorded yet. Send requests through the CostOpt SDK to begin tracking activity.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- UNREALIZED OPPORTUNITIES -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Unrealized Savings Opportunities</h3>
+                <span class="card-subtitle">Automated policy recommendations for additional cost reduction</span>
+              </div>
+            </div>
+            <div id="opt-unrealized-container">
+              <div class="empty-state">Loading recommendations...</div>
+            </div>
+          </div>
+
         </div>
-      </div>
+
+
+        <!-- PAGE 4: REQUESTS -->
+        <div id="view-requests" class="tab-panel">
+          
+          <!-- REQUESTS KPI RIBBON -->
+          <div class="bento-grid">
+            <div class="bento-card">
+              <span class="bento-label">Total Requests</span>
+              <div class="bento-val" id="req-kpi-total">0</div>
+              <span class="bento-sub">Total transactions recorded</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Optimized Requests</span>
+              <div class="bento-val text-success" id="req-kpi-optimized">0</div>
+              <span class="bento-sub">Cached or model-rerouted</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Cache Hits</span>
+              <div class="bento-val text-success" id="req-kpi-cache-hits">0</div>
+              <span class="bento-sub">Served from local SQLite</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Average Latency</span>
+              <div class="bento-val text-info" id="req-kpi-avg-latency">0 ms</div>
+              <span class="bento-sub">Average roundtrip response</span>
+            </div>
+          </div>
+
+          <!-- FILTER TOOLBAR -->
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:280px;">
+                <input type="text" id="req-search-input" class="glass-input" style="flex:1;" placeholder="Search prompt hash or model name..." />
+                
+                <select id="req-filter-outcome" class="glass-input" style="width:160px;">
+                  <option value="all">All Outcomes</option>
+                  <option value="cache">Cache Hits</option>
+                  <option value="reroute">Model Reroutes</option>
+                  <option value="direct">Direct Requests</option>
+                </select>
+
+                <button id="btn-clear-filters" class="btn">Clear</button>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-muted);">
+                <span>Showing <strong id="req-count-label" class="mono-text text-primary">0</strong> records</span>
+                <div id="req-filter-badge-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REQUEST EXPLORER TABLE -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Request Explorer</h3>
+                <span class="card-subtitle">Click any row or Inspect button to open complete Decision Intelligence Trace</span>
+              </div>
+            </div>
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Prompt Hash</th>
+                    <th>Requested Model</th>
+                    <th>Executed Model</th>
+                    <th>Outcome</th>
+                    <th style="text-align: right;">Latency</th>
+                    <th style="text-align: right;">Actual Cost</th>
+                    <th style="text-align: right;">Savings</th>
+                    <th style="text-align: center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="req-table-body">
+                  <tr><td colspan="9" class="empty-state">No requests matching current filter.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- PAGE 5: POLICIES -->
+        <div id="view-policies" class="tab-panel">
+          
+          <!-- POLICY SUMMARY RIBBON -->
+          <div class="bento-grid">
+            <div class="bento-card">
+              <span class="bento-label">Active Policies</span>
+              <div class="bento-val text-success">2 Rules</div>
+              <span class="bento-sub">Active routing & caching rules</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Prompt Cache Engine</span>
+              <div class="bento-val text-success">Active</div>
+              <span class="bento-sub">MD5 + Cosine similarity threshold</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Model Router</span>
+              <div class="bento-val text-success">Active</div>
+              <span class="bento-sub">Rule-based intent routing</span>
+            </div>
+
+            <div class="bento-card">
+              <span class="bento-label">Config State</span>
+              <div class="bento-val text-success" id="pol-kpi-config-state">Synced</div>
+              <span class="bento-sub">costopt.yaml status</span>
+            </div>
+          </div>
+
+          <!-- ACTIVE POLICY RULES CARDS -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Active Policy Rules</h3>
+                <span class="card-subtitle">Current cost optimization routing definitions</span>
+              </div>
+            </div>
+
+            <div class="bento-2col">
+              <div style="background:var(--bg-input); border:var(--border-glass); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="badge badge-success">ACTIVE</span>
+                  <span class="mono-text text-muted" style="font-size:11px;">Rule 1</span>
+                </div>
+                <div style="font-weight:700; font-size:14px; color:var(--text-primary);">Simple Text Classification</div>
+                <div style="font-size:12px; color:var(--text-secondary);">Keywords: <code class="mono-text" style="color:var(--color-info);">classify, sentiment, yes/no, label</code> (max len: 500)</div>
+                
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:10px; border-radius:var(--radius-md); margin-top:4px;">
+                  <div style="font-family:var(--font-mono); color:var(--text-primary);">gpt-4o</div>
+                  <span style="color:var(--color-info); font-weight:700;">➔</span>
+                  <div style="font-family:var(--font-mono); color:var(--color-success); font-weight:600;">gpt-4o-mini / deepseek-r1</div>
+                </div>
+              </div>
+
+              <div style="background:var(--bg-input); border:var(--border-glass); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="badge badge-success">ACTIVE</span>
+                  <span class="mono-text text-muted" style="font-size:11px;">Rule 2</span>
+                </div>
+                <div style="font-weight:700; font-size:14px; color:var(--text-primary);">Short Summary Translation</div>
+                <div style="font-size:12px; color:var(--text-secondary);">Keywords: <code class="mono-text" style="color:var(--color-info);">summarize, translate, tldr</code> (max len: 800)</div>
+                
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:10px; border-radius:var(--radius-md); margin-top:4px;">
+                  <div style="font-family:var(--font-mono); color:var(--text-primary);">claude-3-5-sonnet</div>
+                  <span style="color:var(--color-info); font-weight:700;">➔</span>
+                  <div style="font-family:var(--font-mono); color:var(--color-success); font-weight:600;">claude-3-haiku</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- POLICY CONFIGURATION EDITOR -->
+          <div class="glass-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Policy Configuration File (costopt.yaml)</h3>
+                <span class="card-subtitle">Edit routing rules and model fallbacks in YAML format</span>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span id="pol-config-unsaved-badge" class="badge badge-warning" style="display:none;">Unsaved Changes</span>
+                <button id="btn-revert-config" class="btn" disabled>Revert</button>
+                <button id="btn-save-config" class="btn btn-glass-primary" disabled>Save Configuration</button>
+              </div>
+            </div>
+
+            <textarea id="pol-yaml-editor" class="glass-textarea" spellcheck="false"></textarea>
+            <div id="pol-editor-feedback" style="display:none; font-size:12px; margin-top:10px;"></div>
+          </div>
+
+          <!-- DESTRUCTIVE ACTIONS PANEL -->
+          <div class="destructive-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:var(--color-danger);">Destructive Operations</h4>
+                <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Actions in this area reset or wipe stored local state and metrics.</p>
+              </div>
+
+              <div style="display:flex; gap:12px;">
+                <button id="btn-clear-cache" class="btn btn-danger">Clear Local Cache DB</button>
+                <button id="btn-reset-telemetry" class="btn btn-danger">Reset Telemetry Analytics</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
     </div>
-
-    <!-- TAB VIEW 2: ANALYTICS -->
-    <div id="view-analytics" class="tab-view hidden-tab">
-      <div class="main-grid" style="grid-template-columns: 1fr 1fr;">
-        <div class="console-panel glass-panel">
-          <div class="panel-header">
-            <h2>📊 Provider Usage & Token Volumes</h2>
-          </div>
-          <div style="padding: 24px; color: var(--text-secondary);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
-              <span>OpenAI API</span>
-              <span class="fira-code text-green">142,500 Tokens</span>
-            </div>
-            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:20px;">
-              <div style="width:75%; height:100%; background:var(--accent-indigo); border-radius:4px;"></div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
-              <span>Anthropic API</span>
-              <span class="fira-code text-cyan">38,200 Tokens</span>
-            </div>
-            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px; margin-bottom:20px;">
-              <div style="width:40%; height:100%; background:var(--accent-cyan); border-radius:4px;"></div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:600;">
-              <span>Google Gemini API</span>
-              <span class="fira-code text-emerald">12,100 Tokens</span>
-            </div>
-            <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:4px;">
-              <div style="width:20%; height:100%; background:var(--accent-emerald); border-radius:4px;"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="console-panel glass-panel">
-          <div class="panel-header">
-            <h2>⚡ Cache Efficiency & Latency Specs</h2>
-          </div>
-          <div style="padding: 24px; color: var(--text-secondary);">
-            <p style="margin-bottom:16px;">Average Response Latency: <strong class="fira-code text-green">184ms</strong> (Cached) vs <strong class="fira-code">1,240ms</strong> (API Direct)</p>
-            <p style="margin-bottom:16px;">Vector Cosine Match Threshold: <strong class="fira-code text-cyan">0.70 (Semantic Matching Active)</strong></p>
-            <p style="margin-bottom:16px;">Database Cache Size: <strong class="fira-code">154 cached items</strong></p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB VIEW 3: COSTS -->
-    <div id="view-costs" class="tab-view hidden-tab">
-      <div class="log-explorer glass-panel">
-        <div class="card-header">
-          <h2>💰 Detailed FinOps Cost Breakdown per Model</h2>
-        </div>
-        <div class="log-table-container">
-          <table class="log-table">
-            <thead>
-              <tr>
-                <th>Model Name</th>
-                <th>Provider</th>
-                <th>Input Rate (/1M)</th>
-                <th>Output Rate (/1M)</th>
-                <th>Cache Savings</th>
-                <th>Reroute Savings</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="fira-code">gpt-4o</td>
-                <td>OpenAI</td>
-                <td>$5.00</td>
-                <td>$15.00</td>
-                <td class="text-green">$0.5420</td>
-                <td class="text-green">$0.2400</td>
-              </tr>
-              <tr>
-                <td class="fira-code">gpt-4o-mini</td>
-                <td>OpenAI</td>
-                <td>$0.15</td>
-                <td>$0.60</td>
-                <td class="text-green">$0.0450</td>
-                <td class="text-green">$0.0000</td>
-              </tr>
-              <tr>
-                <td class="fira-code">claude-3-5-sonnet</td>
-                <td>Anthropic</td>
-                <td>$3.00</td>
-                <td>$15.00</td>
-                <td class="text-green">$0.0535</td>
-                <td class="text-green">$0.0000</td>
-              </tr>
-              <tr>
-                <td class="fira-code">gemini-1.5-flash</td>
-                <td>Google</td>
-                <td>$0.35</td>
-                <td>$1.05</td>
-                <td class="text-green">$0.0000</td>
-                <td class="text-green">$0.0000</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB VIEW 4: TRACES -->
-    <div id="view-traces" class="tab-view hidden-tab">
-      <div class="log-explorer glass-panel">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <h2>🕵️ Full-Screen Trace Explorer</h2>
-          <input type="text" id="trace-search" placeholder="Search by MD5 hash or model..." style="background:var(--bg-input); border:1px solid var(--border-color); color:var(--text-primary); padding:8px 14px; border-radius:6px; font-family:var(--font-mono); width:300px;">
-        </div>
-        <div class="log-table-container">
-          <table class="log-table">
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>MD5 Hash</th>
-                <th>Requested Model</th>
-                <th>Executed Model</th>
-                <th>Latency</th>
-                <th>Cost</th>
-                <th>Status Code</th>
-              </tr>
-            </thead>
-            <tbody id="full-trace-table-rows">
-              <!-- Dynamically syncs with telemetry stream -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB VIEW 5: SETTINGS -->
-    <div id="view-settings" class="tab-view hidden-tab">
-      <div class="main-grid" style="grid-template-columns: 1fr 1fr;">
-        <div class="console-panel glass-panel">
-          <div class="panel-header">
-            <h2>⚙️ Engine Configuration</h2>
-          </div>
-          <div style="padding: 24px;">
-            <div class="form-group" style="margin-bottom:20px;">
-              <label style="display:block; margin-bottom:8px; font-weight:600;">Lexical Similarity Threshold: <span id="thresh-val" class="fira-code text-cyan">0.70</span></label>
-              <input type="range" id="thresh-slider" min="0.50" max="1.00" step="0.05" value="0.70" style="width:100%;">
-            </div>
-            
-            <div style="margin-top:24px;">
-              <button id="btn-settings-clear-cache" class="btn btn-secondary" style="margin-right:12px;">CLEAR CACHE DB</button>
-              <button id="btn-settings-clear-telemetry" class="btn btn-secondary">CLEAR TELEMETRY DB</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="console-panel glass-panel">
-          <div class="panel-header">
-            <h2>🔌 Provider Connections</h2>
-          </div>
-          <div style="padding: 24px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-              <span>OpenAI API Client</span>
-              <span class="badge-status text-green">CONNECTED</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-              <span>Anthropic API Client</span>
-              <span class="badge-status text-green">CONNECTED</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Google Gemini API Client</span>
-              <span class="badge-status text-green">CONNECTED</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hidden canvas for chart calculations -->
-    <div style="display:none;">
-      <canvas id="savingsChart"></canvas>
-    </div>
-
-    <!-- Reusable Modal Overlay -->
-    <div id="modal-overlay" class="modal-overlay hidden-modal">
-      <div class="modal-content glass-panel">
-        <div class="modal-header">
-          <h2 id="modal-title">Modal Title</h2>
-          <button id="modal-close" class="modal-close-btn">&times;</button>
-        </div>
-        <div id="modal-body" class="modal-body">
-          <!-- Content populated dynamically -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="main-footer">
-      <p>LLM CostOpt is an open-source tool. Data is stored 100% locally in SQLite database files.</p>
-    </footer>
   </div>
 
-  <script src="/static/app.js?v=0.1.2"></script>
+  <!-- GLOBAL MODAL / INSPECTION DRAWER OVERLAY -->
+  <div id="global-modal" class="modal-overlay"></div>
+
+  <script src="/static/app.js"></script>
 </body>
 </html>

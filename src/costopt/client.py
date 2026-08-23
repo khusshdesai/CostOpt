@@ -88,8 +88,9 @@ class CostOptCompletions:
         location_key = f"{file_path}:{line_number}" if file_path else "<unknown_location>"
         self._wrapper.circuit_breaker.check_and_record(location_key)
 
-        # Evaluate model routing first to get model_used
-        model_used = self._wrapper.router.match_route(prompt_text, model_requested)
+        # Evaluate decision via DecisionEngine
+        decision = self._wrapper.decision_engine.evaluate(prompt_text, model_requested, provider=self._wrapper.provider)
+        model_used = decision.selected_model
 
         # Handle streaming interception if stream=True
         if kwargs.get("stream"):
@@ -133,7 +134,12 @@ class CostOptCompletions:
                     "region": region,
                     "retry_count": 0,
                     "file_path": file_path,
-                    "line_number": line_number
+                    "line_number": line_number,
+                    "task_type": decision.task_type,
+                    "complexity": decision.complexity,
+                    "confidence": decision.confidence,
+                    "decision_reason": decision.reason,
+                    "decision_trace": decision.decision_trace
                 })
                 return chat_completion
             except Exception as e:
@@ -155,8 +161,11 @@ class CostOptCompletions:
             response = self._original.create(*args, **kwargs)
         except Exception as e:
             last_exception = e
-            # Try to run model fallbacks
+            # Try to run model fallbacks for model_used or original model_requested
             fallbacks = self._wrapper.router.get_fallbacks(model_used)
+            if not fallbacks and model_used.lower() != model_requested.lower():
+                fallbacks = self._wrapper.router.get_fallbacks(model_requested)
+                
             for fallback_entry in fallbacks:
                 retry_count += 1
                 # Support multi-provider syntax e.g. "anthropic/claude-3-5-sonnet"
@@ -404,10 +413,12 @@ class CostOpt:
         self.region = region
 
         # Initialize engine sub-modules
+        from costopt.optimization import DecisionEngine
         self.router = CostOptRouter(config_path)
         self.cache = SQLiteCache(cache_db_path, similarity_threshold)
         self.telemetry = SQLiteTelemetryLogger(telemetry_db_path)
         self.circuit_breaker = CircuitBreaker(max_calls=circuit_breaker_max_calls)
+        self.decision_engine = DecisionEngine(config_path, cache_db_path, similarity_threshold)
 
         # Wrap chat endpoint
         if hasattr(self._client, "chat"):
