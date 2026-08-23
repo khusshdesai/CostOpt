@@ -79,23 +79,28 @@ Displays your current daily spend directly in the bottom status bar (`CostOpt: $
 
 ---
 
-## 📊 Dashboard
+## 📊 Observability Dashboard
 
-The full observability dashboard includes 4 views:
+The web console features a modern dark-mode aesthetic (`#050505` canvas, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
 
-| Tab | What it shows |
-|---|---|
-| **Overview** | Live telemetry stream, SDK sim, YAML policy rules, anomaly alerts |
-| **Analytics** | Token volumes by provider, cache efficiency, latency comparison |
-| **Traces** | Full searchable trace explorer with cost, latency, model routing per call |
-| **Settings** | Configure similarity threshold, TTL, budget, and reset telemetry |
-
+### 1. Overview
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_analytics.png" width="880" alt="Analytics Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="880" alt="Dashboard Overview" />
 </p>
 
+### 2. Spend Analytics
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_traces.png" width="880" alt="Traces Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_spend.png" width="880" alt="Spend Tab" />
+</p>
+
+### 3. Requests Explorer & Decision Trace
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/decision_trace_modal.png" width="880" alt="Request Inspection Trace Modal" />
+</p>
+
+### 4. Policies Configuration
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_settings.png" width="880" alt="Policies Tab" />
 </p>
 
 ---

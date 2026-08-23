@@ -34,7 +34,7 @@ CostOpt acts as a transparent, drop-in SDK interceptor and decision engine that:
 - Serves prompt hits locally in **<15ms at $0.00 cost** via an SQLite prompt cache.
 - Analyzes request intent and complexity to automatically route simple tasks to cost-effective models.
 - Enforces quality guardrails and automatic outage failovers.
-- Records unified FinOps telemetry displayed on a glassmorphism web console.
+- Records unified FinOps telemetry displayed on a real-time web console.
 
 ---
 
@@ -70,7 +70,7 @@ print(response.choices[0].message.content)
 | 🔀 **Policy-Aware Model Router** | Rule-based keyword and task-complexity routing — simple tasks auto-rerouted to efficient models (`gpt-4o` ➔ `gpt-4o-mini` / `deepseek-r1`). |
 | 🛡️ **Circuit Breaker** | Detects call velocity loops from the same file/line location and trips `CostOptCircuitBreakerError`. |
 | 🔄 **Outage Failover** | Auto-retries fallback models on 429/503 errors (`gpt-4o` ➔ `claude-3-5-sonnet` ➔ `llama3`). |
-| 📊 **Glassmorphism FinOps Console** | Premium dark glass dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
+| 📊 **Observability & FinOps Console** | Premium dark-mode dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
 | 🔍 **Decision Intelligence Traces** | Step-by-step visual trace flow explaining every request analysis, cache evaluation, and routing decision. |
 | 🖥️ **VS Code Extension** | Inline CodeLens cost per request, call counts, hover panels, and status bar metrics directly inside VS Code. |
 | 🔒 **100% Local & Private** | Stored in local SQLite (`costopt_telemetry.db`, `costopt_cache.db`). Zero data leaves your machine. |
@@ -152,9 +152,9 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## 📊 Glassmorphism Observability Dashboard
+## 📊 Observability Dashboard
 
-The web console features a **Glassmorphism** aesthetic (`#050505` canvas, 35px backdrop blur, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
+The web console features a modern dark-mode aesthetic (`#050505` canvas, translucent borders, ambient glows, fixed left sidebar shell, and bento grid layout) across 5 primary navigation tabs:
 
 ### 1. Overview
 <p align="center">
