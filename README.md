@@ -2,19 +2,22 @@
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/costopt_logo.png" width="120" alt="CostOpt Logo" />
 </p>
 
-<h1 align="center">CostOpt</h1>
+<h1 align="center">CostOpt — Developer-Native LLM Cost Intelligence ⚡</h1>
 
 <p align="center">
-  <strong>Developer-Focused LLM Cost Optimization & Observability Platform</strong><br>
-  <em>Drop-in OpenAI SDK interceptor, multi-tier prompt caching, intelligent model routing, decision explainability & FinOps console.</em>
+  <strong>Drop-in wrapper for OpenAI, Anthropic & Gemini clients that adds automatic caching, smart model routing, circuit breaker protection, and a real-time observability dashboard — all 100% local.</strong><br>
+  <em>Stop waiting for a $500 monthly cloud bill to figure out where your LLM budget went.</em>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt?color=3B82F6&logo=pypi&logoColor=white" alt="PyPI Version"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg?logo=python&logoColor=white" alt="Python Version"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/open-vsx/dt/khusshdesai/costopt-vscode?color=6366F1&label=Open%20VSX" alt="Open VSX Installs"></a>
-  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License"></a>
-  <a href="https://github.com/khusshdesai/CostOpt"><img src="https://img.shields.io/badge/tests-18%20passed-10B981.svg" alt="Tests"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.3-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-available-brightgreen" alt="Downloads"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-1K%2B%20installs-purple" alt="Open VSX Installs"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.1.7-blue" alt="VS Marketplace"></a>
+  <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
+  <a href="https://github.com/khusshdesai/CostOpt"><img src="https://img.shields.io/badge/tests-18%20passed-brightgreen" alt="Tests"></a>
 </p>
 
 ---
