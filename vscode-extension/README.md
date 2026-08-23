@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="900" alt="CostOpt Dashboard Console" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_overview.png" width="900" alt="CostOpt Dashboard Console" />
 </p>
 
 ---
@@ -85,22 +85,22 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
 
 ### 1. Overview
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="880" alt="Dashboard Overview" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_overview.png" width="880" alt="Dashboard Overview" />
 </p>
 
 ### 2. Spend Analytics
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_spend.png" width="880" alt="Spend Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_spend.png" width="880" alt="Spend Tab" />
 </p>
 
 ### 3. Requests Explorer & Decision Trace
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/decision_trace_modal.png" width="880" alt="Request Inspection Trace Modal" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_traces.png" width="880" alt="Request Inspection Trace Modal" />
 </p>
 
 ### 4. Policies Configuration
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_settings.png" width="880" alt="Policies Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_policies.png" width="880" alt="Policies Tab" />
 </p>
 
 ---

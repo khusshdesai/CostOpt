@@ -158,28 +158,28 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
 
 ### 1. Overview
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_overview.png" width="880" alt="Dashboard Overview" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_overview.png" width="880" alt="Dashboard Overview" />
 </p>
 
 > Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
 
 ### 2. Spend Analytics
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_spend.png" width="880" alt="Spend Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_spend.png" width="880" alt="Spend Tab" />
 </p>
 
 > Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
 
 ### 3. Requests Explorer & Decision Intelligence Trace
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/decision_trace_modal.png" width="880" alt="Request Inspection Trace Modal" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_traces.png" width="880" alt="Request Inspection Trace Modal" />
 </p>
 
 > Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
 
 ### 4. Policies Configuration
 <p align="center">
-  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/dashboard_settings.png" width="880" alt="Policies Tab" />
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_policies.png" width="880" alt="Policies Tab" />
 </p>
 
 > Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
