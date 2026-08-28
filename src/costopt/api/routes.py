@@ -342,7 +342,9 @@ def get_requests_summary():
 def get_requests_list(
     search: Optional[str] = None,
     outcome: Optional[str] = None,
-    limit: int = 50,
+    model: Optional[str] = None,
+    task_type: Optional[str] = None,
+    limit: int = 100,
     offset: int = 0
 ):
     """Returns filtered and paginated request telemetry records."""
@@ -354,9 +356,9 @@ def get_requests_list(
             params = []
 
             if search:
-                where_clauses.append("(prompt_hash LIKE ? OR model_requested LIKE ? OR model_used LIKE ? OR request_id LIKE ?)")
+                where_clauses.append("(prompt_hash LIKE ? OR model_requested LIKE ? OR model_used LIKE ? OR request_id LIKE ? OR decision_reason LIKE ?)")
                 s_param = f"%{search}%"
-                params.extend([s_param, s_param, s_param, s_param])
+                params.extend([s_param, s_param, s_param, s_param, s_param])
 
             if outcome == 'cache':
                 where_clauses.append("cache_hit = 1")
@@ -364,6 +366,16 @@ def get_requests_list(
                 where_clauses.append("cache_hit = 0 AND model_requested != model_used")
             elif outcome == 'direct':
                 where_clauses.append("cache_hit = 0 AND model_requested = model_used")
+            elif outcome == 'optimized':
+                where_clauses.append("(cache_hit = 1 OR model_requested != model_used OR savings > 0)")
+
+            if model and model != 'all':
+                where_clauses.append("(model_requested = ? OR model_used = ?)")
+                params.extend([model, model])
+
+            if task_type and task_type != 'all':
+                where_clauses.append("task_type = ?")
+                params.append(task_type)
 
             where_str = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 

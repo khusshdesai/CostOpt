@@ -474,18 +474,37 @@
 
           <!-- FILTER TOOLBAR -->
           <div class="glass-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:280px;">
-                <input type="text" id="req-search-input" class="glass-input" style="flex:1;" placeholder="Search prompt hash or model name..." />
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:320px; flex-wrap:wrap;">
+                <input type="text" id="req-search-input" class="glass-input" style="flex:1; min-width:180px;" placeholder="Search prompt hash, model, or reason..." />
                 
-                <select id="req-filter-outcome" class="glass-input" style="width:160px;">
+                <select id="req-filter-outcome" class="glass-input" style="width:150px;">
                   <option value="all">All Outcomes</option>
+                  <option value="optimized">Optimized Only</option>
                   <option value="cache">Cache Hits</option>
                   <option value="reroute">Model Reroutes</option>
                   <option value="direct">Direct Requests</option>
                 </select>
 
-                <button id="btn-clear-filters" class="btn">Clear</button>
+                <select id="req-filter-model" class="glass-input" style="width:140px;">
+                  <option value="all">All Models</option>
+                  <option value="gpt-4o">gpt-4o</option>
+                  <option value="gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="claude-3-5-sonnet">claude-3-5-sonnet</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                </select>
+
+                <select id="req-filter-task" class="glass-input" style="width:150px;">
+                  <option value="all">All Tasks</option>
+                  <option value="simple_classification">Classification</option>
+                  <option value="extraction">Extraction</option>
+                  <option value="summarization">Summarization</option>
+                  <option value="coding">Coding</option>
+                  <option value="reasoning">Reasoning</option>
+                  <option value="general_chat">General Chat</option>
+                </select>
+
+                <button id="btn-clear-filters" class="btn" style="padding: 6px 14px;">Clear</button>
               </div>
 
               <div style="display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-muted);">

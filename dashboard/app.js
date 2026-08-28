@@ -64,6 +64,8 @@ let lastModelData = [];
 
 let currentRequestSearch = '';
 let currentRequestOutcome = 'all';
+let currentRequestModel = 'all';
+let currentRequestTask = 'all';
 
 let initialYamlConfig = '';
 
@@ -1021,6 +1023,8 @@ function renderRequestsKPIs(summary) {
 function initRequestFilters() {
   const searchInput = document.getElementById('req-search-input');
   const outcomeSelect = document.getElementById('req-filter-outcome');
+  const modelSelect = document.getElementById('req-filter-model');
+  const taskSelect = document.getElementById('req-filter-task');
   const clearBtn = document.getElementById('btn-clear-filters');
 
   let debounceTimer = null;
@@ -1042,12 +1046,30 @@ function initRequestFilters() {
     });
   }
 
+  if (modelSelect) {
+    modelSelect.addEventListener('change', (e) => {
+      currentRequestModel = e.target.value;
+      fetchAndRenderRequestsTable();
+    });
+  }
+
+  if (taskSelect) {
+    taskSelect.addEventListener('change', (e) => {
+      currentRequestTask = e.target.value;
+      fetchAndRenderRequestsTable();
+    });
+  }
+
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       if (searchInput) searchInput.value = '';
       if (outcomeSelect) outcomeSelect.value = 'all';
+      if (modelSelect) modelSelect.value = 'all';
+      if (taskSelect) taskSelect.value = 'all';
       currentRequestSearch = '';
       currentRequestOutcome = 'all';
+      currentRequestModel = 'all';
+      currentRequestTask = 'all';
       fetchAndRenderRequestsTable();
     });
   }
@@ -1064,6 +1086,8 @@ async function fetchAndRenderRequestsTable() {
     let queryParams = new URLSearchParams();
     if (currentRequestSearch) queryParams.append('search', currentRequestSearch);
     if (currentRequestOutcome !== 'all') queryParams.append('outcome', currentRequestOutcome);
+    if (currentRequestModel !== 'all') queryParams.append('model', currentRequestModel);
+    if (currentRequestTask !== 'all') queryParams.append('task_type', currentRequestTask);
     queryParams.append('limit', '100');
 
     const res = await fetch(`/api/requests/list?${queryParams.toString()}`);
@@ -1079,6 +1103,8 @@ async function fetchAndRenderRequestsTable() {
       const activeBadges = [];
       if (currentRequestSearch) activeBadges.push(`<span class="badge badge-info">Search: "${currentRequestSearch}"</span>`);
       if (currentRequestOutcome !== 'all') activeBadges.push(`<span class="badge badge-warning">Outcome: ${currentRequestOutcome}</span>`);
+      if (currentRequestModel !== 'all') activeBadges.push(`<span class="badge badge-info">Model: ${currentRequestModel}</span>`);
+      if (currentRequestTask !== 'all') activeBadges.push(`<span class="badge badge-success">Task: ${currentRequestTask}</span>`);
       badgeContainer.innerHTML = activeBadges.join(' ');
     }
 
