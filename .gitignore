@@ -89,6 +89,8 @@ build/
 # Local test and development scripts
 scripts/
 
-# VS Code Extension dependencies
+# VS Code Extension and Node SDK dependencies
+node_modules/
 vscode-extension/node_modules/
+packages/node-sdk/node_modules/
 *.vsix

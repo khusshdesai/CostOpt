@@ -1,0 +1,33 @@
+{
+  "name": "costopt",
+  "version": "0.1.0",
+  "description": "Developer-native LLM cost intelligence SDK for Node.js & TypeScript. Drop-in wrapper with automatic caching, smart model routing, and local circuit breaker protection.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "node --test dist/test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "llm",
+    "cost",
+    "finops",
+    "openai",
+    "anthropic",
+    "cost-optimization",
+    "circuit-breaker",
+    "semantic-cache",
+    "observability"
+  ],
+  "author": "Khussh Desai",
+  "license": "MIT",
+  "peerDependencies": {
+    "openai": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
+  }
+}
