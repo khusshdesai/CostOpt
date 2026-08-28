@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/pypi/v/costopt?color=blue&style=flat-square" alt="PyPI"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.7-blue?style=flat-square" alt="PyPI"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple.svg?style=flat-square" alt="VS Code Version">
-  <img src="https://img.shields.io/badge/Open%20VSX-1K%2B%20installs-orange?style=flat-square" alt="Installs">
-  <img src="https://img.shields.io/badge/VS%20Marketplace-v0.1.9-blue?style=flat-square" alt="VS Marketplace">
+  <img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-orange?style=flat-square" alt="Installs">
+  <img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.3-blue?style=flat-square" alt="VS Marketplace">
 </p>
 
 <p align="center">
