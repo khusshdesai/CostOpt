@@ -369,6 +369,15 @@ body::after {
   font-family: var(--font-mono);
 }
 
+/* Sync icon spin animation */
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin-once {
+  animation: spin-once 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Glass Buttons */
 .btn {
   display: inline-flex;

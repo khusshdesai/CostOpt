@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.8-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.9-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-2K%2B-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-purple" alt="Open VSX Installs"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.4-blue" alt="VS Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.5-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
@@ -161,7 +161,7 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_overview.png" width="880" alt="Dashboard Overview" />
 </p>
 
-> Net Financial Impact Hero Glass Card (`$0.0023` / dynamic savings), smooth Chart.js spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
+> Net Financial Impact Hero Glass Card (`$0.0093` / dynamic savings), smooth spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
 
 ### 2. Spend Analytics
 <p align="center">
@@ -170,19 +170,26 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
 
 > Actual LLM spend hero card with baseline comparison, spend by model/provider bento distribution cards, and sortable model cost breakdown table.
 
-### 3. Requests Explorer & Decision Intelligence Trace
+### 3. Optimizations Engine
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_optimizations.png" width="880" alt="Optimizations Tab" />
+</p>
+
+> Active optimization strategy status cards (Local SQLite Cache, Rule-Based Model Rerouting), total net savings per strategy, and real-time optimization decision activity log.
+
+### 4. Requests Explorer & Decision Intelligence Trace
 <p align="center">
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_traces.png" width="880" alt="Request Inspection Trace Modal" />
 </p>
 
-> Request explorer table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer (`#global-modal`)** displaying step-by-step **Decision Intelligence Traces**.
+> Request explorer transaction log table with prompt search, outcome filter badges (`CACHE HIT`, `REROUTE`, `DIRECT`), and **Request Inspection Drawer** displaying step-by-step **Decision Intelligence Traces**.
 
-### 4. Policies Configuration
+### 5. Policies Configuration
 <p align="center">
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_policies.png" width="880" alt="Policies Tab" />
 </p>
 
-> Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and destructive cache/telemetry management.
+> Active policy rules visual cards (`Requested Model ➔ Target Model`), model routing map, live `costopt.yaml` policy editor with unsaved state detection, save/revert options, and cache/telemetry management.
 
 ---
 

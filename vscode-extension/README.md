@@ -11,11 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.8-blue?style=flat-square" alt="PyPI"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.9-blue?style=flat-square" alt="PyPI"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple.svg?style=flat-square" alt="VS Code Version">
-  <img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-orange?style=flat-square" alt="Installs">
-  <img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.4-blue?style=flat-square" alt="VS Marketplace">
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-purple?style=flat-square" alt="Open VSX"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.5-blue?style=flat-square" alt="VS Marketplace"></a>
 </p>
 
 <p align="center">
@@ -93,12 +92,17 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_spend.png" width="880" alt="Spend Tab" />
 </p>
 
-### 3. Requests Explorer & Decision Trace
+### 3. Optimizations Engine
+<p align="center">
+  <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_optimizations.png" width="880" alt="Optimizations Tab" />
+</p>
+
+### 4. Requests Explorer & Decision Trace
 <p align="center">
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_traces.png" width="880" alt="Request Inspection Trace Modal" />
 </p>
 
-### 4. Policies Configuration
+### 5. Policies Configuration
 <p align="center">
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_policies.png" width="880" alt="Policies Tab" />
 </p>

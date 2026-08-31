@@ -142,7 +142,19 @@ function initRefreshButton() {
 
   if (refreshBtn) {
     refreshBtn.addEventListener('click', async () => {
-      refreshBtn.textContent = 'Syncing...';
+      const icon = document.getElementById('btn-refresh-icon');
+
+      // Spin the icon
+      if (icon) {
+        icon.classList.remove('spin-once');
+        void icon.offsetWidth; // force reflow to restart animation
+        icon.classList.add('spin-once');
+        icon.addEventListener('animationend', () => icon.classList.remove('spin-once'), { once: true });
+      }
+
+      // Update label text only (icon stays in DOM)
+      const btnSpan = refreshBtn.querySelector('span');
+      if (btnSpan) btnSpan.textContent = 'Syncing...';
       refreshBtn.disabled = true;
 
       const activeTab = document.querySelector('.nav-item.active');
@@ -160,7 +172,7 @@ function initRefreshButton() {
         await loadOverviewData();
       }
 
-      refreshBtn.textContent = 'Sync Analytics';
+      if (btnSpan) btnSpan.textContent = 'Sync Analytics';
       refreshBtn.disabled = false;
       
       if (syncLabel) {

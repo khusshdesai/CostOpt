@@ -94,3 +94,5 @@ node_modules/
 vscode-extension/node_modules/
 packages/node-sdk/node_modules/
 *.vsix
+extracted_ss/
+ss.docx
