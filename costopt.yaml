@@ -19,3 +19,11 @@ routing:
       max_prompt_length: 2000
       original_model: "gpt-4o"
       target_model: "llama3"
+
+alerts:
+  enabled: false
+  daily_budget_usd: 10.00
+  monthly_budget_usd: 50.00
+  cooldown_minutes: 60
+  slack_webhook_url: ""
+

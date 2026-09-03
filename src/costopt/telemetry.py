@@ -8,11 +8,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
+from costopt.alerts import SlackAlertManager, AlertConfig
+
 logger = logging.getLogger("costopt.telemetry")
 
 class SQLiteTelemetryLogger:
-    def __init__(self, db_path: str = "costopt_telemetry.db"):
+    def __init__(self, db_path: str = "costopt_telemetry.db", alert_config: Optional[AlertConfig] = None):
         self.db_path = db_path
+        self.alert_manager = SlackAlertManager(alert_config) if alert_config else None
         self._queue: queue.Queue = queue.Queue()
         self._stop_event = threading.Event()
         self._is_initialized = False
@@ -126,8 +129,14 @@ class SQLiteTelemetryLogger:
     def _flush_batch(self, batch: List[Dict[str, Any]]):
         """Performs bulk insert into the telemetry database."""
         for r in batch:
+            r.setdefault("error_type", None)
             r.setdefault("file_path", "")
             r.setdefault("line_number", 0)
+            r.setdefault("task_type", "general_chat")
+            r.setdefault("complexity", "medium")
+            r.setdefault("confidence", 1.0)
+            r.setdefault("decision_reason", "")
+            r.setdefault("decision_trace", "")
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -148,6 +157,28 @@ class SQLiteTelemetryLogger:
                 """, batch)
                 conn.commit()
                 logger.debug(f"Flushed {len(batch)} telemetry records to DB.")
+
+                # Check budget alerts if alert manager configured
+                if self.alert_manager and self.alert_manager.config.enabled:
+                    try:
+                        cursor.execute("SELECT SUM(cost_actual), COUNT(*), SUM(savings) FROM telemetry WHERE strftime('%Y-%m-%d', timestamp) = strftime('%Y-%m-%d', 'now')")
+                        row = cursor.fetchone()
+                        d_spend = float(row[0] or 0.0)
+                        req_count = int(row[1] or 0)
+                        tot_savings = float(row[2] or 0.0)
+
+                        cursor.execute("SELECT SUM(cost_actual) FROM telemetry WHERE strftime('%Y-%m', timestamp) = strftime('%Y-%m', 'now')")
+                        m_row = cursor.fetchone()
+                        m_spend = float(m_row[0] or 0.0)
+
+                        self.alert_manager.check_and_trigger(
+                            daily_spend=d_spend,
+                            monthly_spend=m_spend,
+                            request_count_today=req_count,
+                            total_savings_today=tot_savings
+                        )
+                    except Exception as alert_err:
+                        logger.error(f"Error evaluating budget alerts: {alert_err}")
         except Exception as e:
             logger.error(f"Error flushing telemetry batch: {e}")
 

@@ -389,11 +389,279 @@ class CostOptChat:
         return getattr(self._original, name)
 
 
+class CostOptAnthropicMessages:
+    def __init__(self, original_messages: Any, wrapper: "CostOpt"):
+        self._original = original_messages
+        self._wrapper = wrapper
+
+    def create(self, *args, **kwargs) -> Any:
+        start_time = time.time()
+        file_path, line_number = _get_caller_location()
+        if file_path and line_number:
+            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}")
+
+        model_requested = kwargs.get("model", "claude-3-5-sonnet")
+        messages = kwargs.get("messages", [])
+        
+        prompt_text = ""
+        for m in messages:
+            content = m.get("content", "") if isinstance(m, dict) else getattr(m, "content", "")
+            role = m.get("role", "user") if isinstance(m, dict) else getattr(m, "role", "user")
+            prompt_text += f"{role}: {content}\n"
+        prompt_hash = _compute_prompt_hash(prompt_text)
+
+        # Check Cache
+        cached_entry = self._wrapper.cache.get(prompt_hash, model_requested)
+        if cached_entry:
+            latency_ms = int((time.time() - start_time) * 1000)
+            in_tokens = max(1, len(prompt_text) // 4)
+            out_tokens = 30
+            orig_cost = calculate_cost("anthropic", model_requested, in_tokens, out_tokens)
+
+            self._wrapper.telemetry.log({
+                "request_id": f"anth_cache_{uuid.uuid4().hex[:8]}",
+                "provider": "anthropic",
+                "model_requested": model_requested,
+                "model_used": model_requested,
+                "input_tokens": in_tokens,
+                "output_tokens": out_tokens,
+                "latency_ms": latency_ms,
+                "status_code": 200,
+                "success": True,
+                "cache_hit": True,
+                "cost_original": orig_cost,
+                "cost_actual": 0.0,
+                "savings": orig_cost,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "task_type": "general_chat",
+                "complexity": "medium",
+                "confidence": 1.0,
+                "decision_reason": "Served from Anthropic local prompt cache",
+            })
+            
+            class MockContentBlock:
+                def __init__(self, text):
+                    self.type = "text"
+                    self.text = text
+            class MockUsage:
+                def __init__(self, in_t, out_t):
+                    self.input_tokens = in_t
+                    self.output_tokens = out_t
+            class MockMessage:
+                def __init__(self, text, model, in_t, out_t):
+                    self.id = f"msg_cache_{uuid.uuid4().hex[:8]}"
+                    self.type = "message"
+                    self.role = "assistant"
+                    self.model = model
+                    self.content = [MockContentBlock(text)]
+                    self.usage = MockUsage(in_t, out_t)
+            
+            response_str = cached_entry.get("response_text", "") if isinstance(cached_entry, dict) else str(cached_entry)
+            return MockMessage(response_str, model_requested, in_tokens, out_tokens)
+
+        # Execute Live Anthropic Call
+        try:
+            response = self._original.create(*args, **kwargs)
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            response_text = ""
+            if hasattr(response, "content") and isinstance(response.content, list):
+                response_text = "".join([getattr(block, "text", "") for block in response.content if hasattr(block, "text")])
+            
+            usage = getattr(response, "usage", None)
+            in_tokens = getattr(usage, "input_tokens", max(1, len(prompt_text) // 4)) if usage else max(1, len(prompt_text) // 4)
+            out_tokens = getattr(usage, "output_tokens", 30) if usage else 30
+
+            actual_cost = calculate_cost("anthropic", model_requested, in_tokens, out_tokens)
+
+            self._wrapper.cache.set(prompt_hash, model_requested, response_text)
+
+            self._wrapper.telemetry.log({
+                "request_id": getattr(response, "id", f"msg_{uuid.uuid4().hex[:8]}"),
+                "provider": "anthropic",
+                "model_requested": model_requested,
+                "model_used": model_requested,
+                "input_tokens": in_tokens,
+                "output_tokens": out_tokens,
+                "latency_ms": latency_ms,
+                "status_code": 200,
+                "success": True,
+                "cache_hit": False,
+                "cost_original": actual_cost,
+                "cost_actual": actual_cost,
+                "savings": 0.0,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "task_type": "general_chat",
+                "complexity": "medium",
+                "confidence": 1.0,
+                "decision_reason": "Direct Anthropic API Execution",
+            })
+            return response
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            self._wrapper.telemetry.log({
+                "request_id": f"err_{uuid.uuid4().hex[:8]}",
+                "provider": "anthropic",
+                "model_requested": model_requested,
+                "model_used": model_requested,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "latency_ms": latency_ms,
+                "status_code": 500,
+                "success": False,
+                "error_type": type(e).__name__,
+                "cache_hit": False,
+                "cost_original": 0.0,
+                "cost_actual": 0.0,
+                "savings": 0.0,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "decision_reason": f"Anthropic Call Failed: {str(e)}",
+            })
+            raise e
+
+
+class CostOptGeminiModel:
+    def __init__(self, original_model: Any, wrapper: "CostOpt"):
+        self._original = original_model
+        self._wrapper = wrapper
+        self.model_name = getattr(original_model, "model_name", "gemini-1.5-pro").replace("models/", "")
+
+    def generate_content(self, contents, *args, **kwargs) -> Any:
+        start_time = time.time()
+        file_path, line_number = _get_caller_location()
+        if file_path and line_number:
+            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}")
+
+        prompt_text = str(contents)
+        prompt_hash = _compute_prompt_hash(prompt_text)
+
+        # Check Cache
+        cached_entry = self._wrapper.cache.get(prompt_hash, self.model_name)
+        if cached_entry:
+            latency_ms = int((time.time() - start_time) * 1000)
+            in_tokens = max(1, len(prompt_text) // 4)
+            out_tokens = 30
+            orig_cost = calculate_cost("google", self.model_name, in_tokens, out_tokens)
+
+            self._wrapper.telemetry.log({
+                "request_id": f"gem_cache_{uuid.uuid4().hex[:8]}",
+                "provider": "google",
+                "model_requested": self.model_name,
+                "model_used": self.model_name,
+                "input_tokens": in_tokens,
+                "output_tokens": out_tokens,
+                "latency_ms": latency_ms,
+                "status_code": 200,
+                "success": True,
+                "cache_hit": True,
+                "cost_original": orig_cost,
+                "cost_actual": 0.0,
+                "savings": orig_cost,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "decision_reason": "Served from Gemini local prompt cache",
+            })
+
+            class MockGeminiResponse:
+                def __init__(self, text):
+                    self.text = text
+            response_str = cached_entry.get("response_text", "") if isinstance(cached_entry, dict) else str(cached_entry)
+            return MockGeminiResponse(response_str)
+
+        try:
+            response = self._original.generate_content(contents, *args, **kwargs)
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            response_text = getattr(response, "text", str(response))
+            usage = getattr(response, "usage_metadata", None)
+            in_tokens = getattr(usage, "prompt_token_count", max(1, len(prompt_text) // 4)) if usage else max(1, len(prompt_text) // 4)
+            out_tokens = getattr(usage, "candidates_token_count", 30) if usage else 30
+
+            actual_cost = calculate_cost("google", self.model_name, in_tokens, out_tokens)
+
+            self._wrapper.cache.set(prompt_hash, self.model_name, response_text)
+
+            self._wrapper.telemetry.log({
+                "request_id": f"gem_{uuid.uuid4().hex[:8]}",
+                "provider": "google",
+                "model_requested": self.model_name,
+                "model_used": self.model_name,
+                "input_tokens": in_tokens,
+                "output_tokens": out_tokens,
+                "latency_ms": latency_ms,
+                "status_code": 200,
+                "success": True,
+                "cache_hit": False,
+                "cost_original": actual_cost,
+                "cost_actual": actual_cost,
+                "savings": 0.0,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "decision_reason": "Direct Google Gemini API Execution",
+            })
+            return response
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            self._wrapper.telemetry.log({
+                "request_id": f"err_{uuid.uuid4().hex[:8]}",
+                "provider": "google",
+                "model_requested": self.model_name,
+                "model_used": self.model_name,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "latency_ms": latency_ms,
+                "status_code": 500,
+                "success": False,
+                "error_type": type(e).__name__,
+                "cache_hit": False,
+                "cost_original": 0.0,
+                "cost_actual": 0.0,
+                "savings": 0.0,
+                "prompt_hash": prompt_hash,
+                "environment": self._wrapper.environment,
+                "application": self._wrapper.application,
+                "region": self._wrapper.region,
+                "retry_count": 0,
+                "file_path": file_path,
+                "line_number": line_number,
+                "decision_reason": f"Gemini Call Failed: {str(e)}",
+            })
+            raise e
+
+
 class CostOpt:
     def __init__(
         self,
         client: Any,
-        provider: str = "openai",
+        provider: str = "auto",
         config_path: str = "costopt.yaml",
         cache_db_path: str = "costopt_cache.db",
         telemetry_db_path: str = "costopt_telemetry.db",
@@ -404,27 +672,45 @@ class CostOpt:
         circuit_breaker_max_calls: int = 15
     ):
         """
-        LLM CostOpt Interceptor client wrapper.
+        LLM CostOpt Interceptor client wrapper. Auto-detects OpenAI, Anthropic, and Google Gemini clients.
         """
         self._client = client
-        self.provider = provider.lower()
         self.environment = environment
         self.application = application
         self.region = region
 
         # Initialize engine sub-modules
         from costopt.optimization import DecisionEngine
+        from costopt.alerts import load_alert_config
+        alert_cfg = load_alert_config(config_path)
         self.router = CostOptRouter(config_path)
         self.cache = SQLiteCache(cache_db_path, similarity_threshold)
-        self.telemetry = SQLiteTelemetryLogger(telemetry_db_path)
+        self.telemetry = SQLiteTelemetryLogger(telemetry_db_path, alert_config=alert_cfg)
         self.circuit_breaker = CircuitBreaker(max_calls=circuit_breaker_max_calls)
         self.decision_engine = DecisionEngine(config_path, cache_db_path, similarity_threshold)
 
-        # Wrap chat endpoint
-        if hasattr(self._client, "chat"):
+        # Auto-detect Client Provider Type
+        prov_lower = provider.lower()
+        client_type = type(self._client).__name__
+
+        if prov_lower == "anthropic" or client_type in ("Anthropic", "AsyncAnthropic"):
+            self.provider = "anthropic"
+            self.messages = CostOptAnthropicMessages(self._client.messages, self)
+        elif prov_lower in ("google", "gemini") or client_type in ("GenerativeModel", "GoogleGenAI"):
+            self.provider = "google"
+            self.generate_content = CostOptGeminiModel(self._client, self).generate_content
+        elif hasattr(self._client, "messages") and not hasattr(self._client, "chat") and not hasattr(self._client, "generate_content"):
+            self.provider = "anthropic"
+            self.messages = CostOptAnthropicMessages(self._client.messages, self)
+        elif hasattr(self._client, "generate_content") and not hasattr(self._client, "chat"):
+            self.provider = "google"
+            self.generate_content = CostOptGeminiModel(self._client, self).generate_content
+        elif hasattr(self._client, "chat"):
+            self.provider = "openai"
             self.chat = CostOptChat(self._client.chat, self)
         else:
-            logger.warning("Wrapped client does not possess 'chat' attribute. Autowrap may only partial capture.")
+            self.provider = prov_lower if prov_lower != "auto" else "openai"
+            logger.warning("Wrapped client does not possess 'chat', 'messages', or 'generate_content' attributes. Delegating accesses.")
 
     def __getattr__(self, name):
         """Delegate all other SDK method accesses (e.g. models, files, assistants) directly to the wrapped client."""
