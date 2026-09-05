@@ -4,6 +4,6 @@ from costopt.router import CostOptRouter
 from costopt.cache import SQLiteCache
 from costopt.circuit_breaker import CostOptCircuitBreakerError
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = ["CostOpt", "calculate_cost", "get_pricing", "CostOptRouter", "SQLiteCache", "CostOptCircuitBreakerError", "__version__"]
