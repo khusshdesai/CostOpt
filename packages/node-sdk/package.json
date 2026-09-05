@@ -1,6 +1,6 @@
 {
   "name": "costopt",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Developer-native LLM cost intelligence SDK for Node.js & TypeScript. Drop-in wrapper with automatic caching, smart model routing, and local circuit breaker protection.",
   "main": "index.js",
   "types": "index.d.ts",

@@ -182,7 +182,8 @@ def generate_telemetry_dataset(
             "environment": environment,
             "application": application,
             "region": region,
-            "retry_count": retry_count
+            "retry_count": retry_count,
+            "is_synthetic": 1
         })
 
     # Sort events by timestamp

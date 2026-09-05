@@ -38,7 +38,7 @@ export interface TelemetryRecord {
 export class TelemetryLogger {
   private endpointUrl: string;
 
-  constructor(endpointUrl: string = 'http://127.0.0.1:8000/api/telemetry') {
+  constructor(endpointUrl: string = 'http://127.0.0.1:8400/api/telemetry') {
     this.endpointUrl = endpointUrl;
   }
 

@@ -36,8 +36,7 @@ export class CostCodeLensProvider implements vscode.CodeLensProvider {
       const range = new vscode.Range(position, position);
 
       // Check if line telemetry exists
-      const lineStat = fileStats?.line_stats.find(s => s.line_number === lineNumber) || 
-                       (fileStats?.line_stats.length ? fileStats.line_stats[0] : null);
+      const lineStat = fileStats?.line_stats.find(s => s.line_number === lineNumber) || null;
 
       let title: string;
       if (lineStat && lineStat.call_count > 0) {

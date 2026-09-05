@@ -49,9 +49,13 @@ export class CostTreeDataProvider implements vscode.TreeDataProvider<CostTreeIte
     if (element.contextValue === 'section_forecast') {
       const forecast = await this.apiClient.getForecast();
       if (!forecast) {
-        return [
-          new CostTreeItem('Service Status', vscode.TreeItemCollapsibleState.None, 'Connecting to local costopt dashboard...', 'loading~spin')
-        ];
+        const startBtn = new CostTreeItem('▶ Click to Start CostOpt', vscode.TreeItemCollapsibleState.None, 'Launch CostOpt dashboard server on port 8400', 'play');
+        startBtn.command = {
+          command: 'costopt.startServer',
+          title: 'Start CostOpt Server'
+        };
+        const statusItem = new CostTreeItem('🔌 Status: Offline', vscode.TreeItemCollapsibleState.None, 'Run: costopt dashboard --port 8400', 'plug');
+        return [startBtn, statusItem];
       }
 
       const totalSpend = forecast.total_spend ?? 0.0;

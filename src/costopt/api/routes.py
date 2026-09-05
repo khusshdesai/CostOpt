@@ -17,8 +17,7 @@ def set_db_paths(telemetry_db: str, cache_db: str):
     try:
         from costopt.telemetry import SQLiteTelemetryLogger
         from costopt.cache import SQLiteCache
-        t = SQLiteTelemetryLogger(db_path=telemetry_db)
-        t.shutdown()
+        SQLiteTelemetryLogger.init_schema_only(db_path=telemetry_db)
         SQLiteCache(db_path=cache_db)
     except Exception:
         pass
@@ -432,12 +431,19 @@ def reset_telemetry():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def _get_safe_config_path() -> str:
+    import os
+    env_path = os.getenv("COSTOPT_CONFIG_PATH")
+    if env_path:
+        return os.path.abspath(env_path)
+    return os.path.abspath("costopt.yaml")
+
 @router.get("/config")
 def get_active_config():
     """Returns the current costopt.yaml routing rules template."""
     import os
     try:
-        config_path = "costopt.yaml"
+        config_path = _get_safe_config_path()
         if os.path.exists(config_path):
             with open(config_path, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -460,7 +466,7 @@ def update_active_config(req: ConfigUpdateRequest):
         if not isinstance(parsed, dict):
             raise ValueError("Configuration YAML must evaluate to a valid dictionary.")
             
-        config_path = "costopt.yaml"
+        config_path = _get_safe_config_path()
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(req.content)
             
@@ -484,12 +490,17 @@ def _write_telemetry_direct(record: dict):
             ("complexity", "TEXT DEFAULT 'medium'"),
             ("confidence", "REAL DEFAULT 1.0"),
             ("decision_reason", "TEXT DEFAULT ''"),
-            ("decision_trace", "TEXT DEFAULT ''")
+            ("decision_trace", "TEXT DEFAULT ''"),
+            ("is_synthetic", "INTEGER DEFAULT 0")
         ]:
             try:
                 cursor.execute(f"ALTER TABLE telemetry ADD COLUMN {col_name} {col_type}")
             except Exception:
                 pass
+
+        trace_val = record.get("decision_trace", "")
+        if isinstance(trace_val, (dict, list)):
+            trace_val = json.dumps(trace_val)
 
         cursor.execute("""
             INSERT OR REPLACE INTO telemetry (
@@ -498,8 +509,8 @@ def _write_telemetry_direct(record: dict):
                 error_type, cache_hit, cost_original, cost_actual, savings,
                 prompt_hash, environment, application, region, retry_count,
                 file_path, line_number, task_type, complexity, confidence,
-                decision_reason, decision_trace
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                decision_reason, decision_trace, is_synthetic
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             record["timestamp"], record["request_id"], record["provider"], record["model_requested"],
             record["model_used"], record["input_tokens"], record["output_tokens"], record["latency_ms"],
@@ -508,7 +519,7 @@ def _write_telemetry_direct(record: dict):
             record["savings"], record["prompt_hash"], record["environment"], record["application"],
             record["region"], record.get("retry_count", 0), record.get("file_path", ""), record.get("line_number", 0),
             record.get("task_type", "general_chat"), record.get("complexity", "medium"), record.get("confidence", 1.0),
-            record.get("decision_reason", ""), json.dumps(record.get("decision_trace", []))
+            record.get("decision_reason", ""), trace_val, record.get("is_synthetic", 0)
         ))
         conn.commit()
 

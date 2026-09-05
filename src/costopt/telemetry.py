@@ -30,16 +30,14 @@ class SQLiteTelemetryLogger:
         self._worker_thread = threading.Thread(target=self._worker, daemon=True)
         self._worker_thread.start()
 
-    def _init_db(self):
-        """Creates the telemetry SQLite database schema if not present."""
+    @classmethod
+    def init_schema_only(cls, db_path: str = "costopt_telemetry.db") -> None:
+        """Initializes the SQLite schema and indices without launching a worker thread."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("PRAGMA busy_timeout=5000;")
                 cursor.execute("PRAGMA journal_mode=WAL;")
-                mode_row = cursor.fetchone()
-                mode = mode_row[0] if mode_row else "unknown"
-                logger.debug(f"SQLite Telemetry DB initialized. Journal mode: {mode}")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS telemetry (
                         timestamp TEXT NOT NULL,
@@ -63,7 +61,13 @@ class SQLiteTelemetryLogger:
                         region TEXT NOT NULL,
                         retry_count INTEGER NOT NULL,
                         file_path TEXT DEFAULT '',
-                        line_number INTEGER DEFAULT 0
+                        line_number INTEGER DEFAULT 0,
+                        task_type TEXT DEFAULT 'general_chat',
+                        complexity TEXT DEFAULT 'medium',
+                        confidence REAL DEFAULT 1.0,
+                        decision_reason TEXT DEFAULT '',
+                        decision_trace TEXT DEFAULT '',
+                        is_synthetic INTEGER DEFAULT 0
                     )
                 """)
                 # Safe migrations for existing DBs
@@ -74,7 +78,8 @@ class SQLiteTelemetryLogger:
                     ("complexity", "TEXT DEFAULT 'medium'"),
                     ("confidence", "REAL DEFAULT 1.0"),
                     ("decision_reason", "TEXT DEFAULT ''"),
-                    ("decision_trace", "TEXT DEFAULT ''")
+                    ("decision_trace", "TEXT DEFAULT ''"),
+                    ("is_synthetic", "INTEGER DEFAULT 0")
                 ]:
                     try:
                         cursor.execute(f"ALTER TABLE telemetry ADD COLUMN {col_name} {col_type}")
@@ -88,6 +93,14 @@ class SQLiteTelemetryLogger:
         except Exception as e:
             logger.error(f"Failed to initialize telemetry database: {e}")
             raise e
+
+    def _init_db(self):
+        """Creates the telemetry SQLite database schema if not present."""
+        self.init_schema_only(self.db_path)
+
+    def bulk_insert(self, records: List[Dict[str, Any]]) -> None:
+        """Public method for bulk inserting a list of telemetry records directly."""
+        self._flush_batch(records)
 
     def log(self, record: Dict[str, Any]) -> None:
         """Queues a telemetry record for asynchronous background write."""
@@ -136,7 +149,13 @@ class SQLiteTelemetryLogger:
             r.setdefault("complexity", "medium")
             r.setdefault("confidence", 1.0)
             r.setdefault("decision_reason", "")
-            r.setdefault("decision_trace", "")
+            r.setdefault("is_synthetic", 0)
+            
+            trace_val = r.get("decision_trace", "")
+            if isinstance(trace_val, (dict, list)):
+                r["decision_trace"] = json.dumps(trace_val)
+            else:
+                r.setdefault("decision_trace", "")
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -146,13 +165,15 @@ class SQLiteTelemetryLogger:
                         input_tokens, output_tokens, latency_ms, status_code, success,
                         error_type, cache_hit, cost_original, cost_actual, savings,
                         prompt_hash, environment, application, region, retry_count,
-                        file_path, line_number
+                        file_path, line_number, task_type, complexity, confidence,
+                        decision_reason, decision_trace, is_synthetic
                     ) VALUES (
                         :timestamp, :request_id, :provider, :model_requested, :model_used,
                         :input_tokens, :output_tokens, :latency_ms, :status_code, :success,
                         :error_type, :cache_hit, :cost_original, :cost_actual, :savings,
                         :prompt_hash, :environment, :application, :region, :retry_count,
-                        :file_path, :line_number
+                        :file_path, :line_number, :task_type, :complexity, :confidence,
+                        :decision_reason, :decision_trace, :is_synthetic
                     )
                 """, batch)
                 conn.commit()

@@ -18,11 +18,13 @@ class CostStatusBarItem {
         }
         const isConnected = await this.apiClient.checkHealth();
         if (!isConnected) {
-            this.statusBarItem.text = `$(plug) CostOpt: Disconnected`;
-            this.statusBarItem.tooltip = `CostOpt local API service is unavailable at ${vscode.workspace.getConfiguration('costopt').get('endpoint')}`;
+            this.statusBarItem.text = `$(play) Click to Start CostOpt`;
+            this.statusBarItem.tooltip = `CostOpt service is offline. Click to launch CostOpt dashboard server on port 8400.`;
+            this.statusBarItem.command = 'costopt.startServer';
             this.statusBarItem.show();
             return;
         }
+        this.statusBarItem.command = 'costopt.showCostSummary';
         const forecast = await this.apiClient.getForecast();
         if (!forecast || !forecast.has_enough_data) {
             this.statusBarItem.text = `$(symbol-numeric) CostOpt: Connected`;

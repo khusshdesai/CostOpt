@@ -1,10 +1,11 @@
 import * as http from 'http';
+import * as https from 'https';
 import * as vscode from 'vscode';
 import { FileStatsResponse, ForecastResponse, WarningItem, FeatureResponse } from '../types';
 
 export class CostOptApiClient {
   private getEndpoint(): string {
-    return vscode.workspace.getConfiguration('costopt').get<string>('endpoint', 'http://127.0.0.1:8000');
+    return vscode.workspace.getConfiguration('costopt').get<string>('endpoint', 'http://127.0.0.1:8400');
   }
 
   private getBudget(): number {
@@ -13,27 +14,41 @@ export class CostOptApiClient {
 
   private async httpGet<T>(path: string): Promise<T | null> {
     const baseUrl = this.getEndpoint();
-    const url = `${baseUrl}${path}`;
+    const urlString = `${baseUrl}${path}`;
 
     return new Promise((resolve) => {
-      http.get(url, (res) => {
-        if (res.statusCode !== 200) {
-          resolve(null);
-          return;
-        }
+      try {
+        const parsedUrl = new URL(urlString);
+        const transport = parsedUrl.protocol === 'https:' ? https : http;
 
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(body) as T);
-          } catch {
+        const req = transport.get(parsedUrl, (res) => {
+          if (res.statusCode !== 200) {
             resolve(null);
+            return;
           }
+
+          let body = '';
+          res.on('data', (chunk) => { body += chunk; });
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(body) as T);
+            } catch {
+              resolve(null);
+            }
+          });
         });
-      }).on('error', () => {
+
+        req.on('error', () => {
+          resolve(null);
+        });
+
+        req.setTimeout(5000, () => {
+          req.destroy();
+          resolve(null);
+        });
+      } catch {
         resolve(null);
-      });
+      }
     });
   }
 

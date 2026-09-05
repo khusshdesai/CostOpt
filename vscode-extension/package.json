@@ -2,7 +2,7 @@
   "name": "costopt-vscode",
   "displayName": "CostOpt — Cost Intelligence While You Code",
   "description": "Developer-native LLM cost intelligence directly inside VS Code. Live CodeLens, hover cost panels, feature spend attribution, and spend forecasting.",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "publisher": "khusshdesai",
   "icon": "icon.png",
   "repository": {
@@ -57,6 +57,10 @@
       {
         "command": "costopt.openLocalDashboard",
         "title": "CostOpt: Open Local Dashboard"
+      },
+      {
+        "command": "costopt.startServer",
+        "title": "CostOpt: Start Local Server"
       }
     ],
     "viewsContainers": {
@@ -81,7 +85,7 @@
       "properties": {
         "costopt.endpoint": {
           "type": "string",
-          "default": "http://127.0.0.1:8000",
+          "default": "http://127.0.0.1:8400",
           "description": "Local CostOpt service API endpoint"
         },
         "costopt.budget": {

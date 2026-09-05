@@ -72,7 +72,7 @@ Under the hood, CostOpt sends the following structured Slack Block Kit JSON payl
       "elements": [
         {
           "type": "mrkdwn",
-          "text": "⚡ *CostOpt FinOps Alert* | Local Dashboard Console: `http://localhost:8000`"
+          "text": "⚡ *CostOpt FinOps Alert* | Local Dashboard Console: `http://localhost:8400`"
         }
       ]
     }

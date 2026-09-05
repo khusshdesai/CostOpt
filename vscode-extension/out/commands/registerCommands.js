@@ -55,8 +55,15 @@ function registerCostOptCommands(context, apiClient, treeProvider, statusBar, co
     }));
     // 6. Open Local Dashboard
     context.subscriptions.push(vscode.commands.registerCommand('costopt.openLocalDashboard', async () => {
-        const endpoint = vscode.workspace.getConfiguration('costopt').get('endpoint', 'http://127.0.0.1:8000');
+        const endpoint = vscode.workspace.getConfiguration('costopt').get('endpoint', 'http://127.0.0.1:8400');
         vscode.env.openExternal(vscode.Uri.parse(endpoint));
+    }));
+    // 7. Start Local Server
+    context.subscriptions.push(vscode.commands.registerCommand('costopt.startServer', async () => {
+        const terminal = vscode.window.createTerminal('CostOpt Server');
+        terminal.sendText('costopt dashboard --port 8400');
+        terminal.show();
+        vscode.window.showInformationMessage('Launching CostOpt dashboard server on port 8400...');
     }));
 }
 //# sourceMappingURL=registerCommands.js.map

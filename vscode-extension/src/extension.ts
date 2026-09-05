@@ -45,13 +45,28 @@ export function activate(context: vscode.ExtensionContext) {
   statusBarItem.update();
   diagnosticsManager.updateDiagnostics();
 
-  // 5. Periodic polling (every 15 seconds)
-  pollTimer = setInterval(() => {
-    statusBarItem.update();
+  // 5. Dynamic polling with exponential backoff when disconnected
+  let currentDelay = 15000;
+  const MIN_DELAY = 15000;
+  const MAX_DELAY = 300000;
+
+  async function pollLoop() {
+    const isConnected = await apiClient.checkHealth();
+    await statusBarItem.update();
     diagnosticsManager.updateDiagnostics();
     treeDataProvider.refresh();
     codeLensProvider.refresh();
-  }, 15000);
+
+    if (isConnected) {
+      currentDelay = MIN_DELAY;
+    } else {
+      currentDelay = Math.min(currentDelay * 2, MAX_DELAY);
+    }
+
+    pollTimer = setTimeout(pollLoop, currentDelay);
+  }
+
+  pollLoop();
 
   // Active Editor change hook
   context.subscriptions.push(
@@ -67,6 +82,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   if (pollTimer) {
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
   }
 }

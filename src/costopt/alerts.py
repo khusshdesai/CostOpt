@@ -154,7 +154,7 @@ class SlackAlertManager:
                 {
                     "type": "context",
                     "elements": [
-                        {"type": "mrkdwn", "text": "⚡ *CostOpt FinOps Alert* | Local Dashboard Console: `http://localhost:8000`"}
+                        {"type": "mrkdwn", "text": "⚡ *CostOpt FinOps Alert* | Local Dashboard Console: `http://localhost:8400`"}
                     ]
                 }
             ]

@@ -40,7 +40,7 @@ def main():
     # 2. dashboard
     parser_dash = subparsers.add_parser("dashboard", help="Start the local developer dashboard")
     parser_dash.add_argument("--host", type=str, default="127.0.0.1", help="Web host server address")
-    parser_dash.add_argument("--port", type=int, default=8000, help="Web server target port")
+    parser_dash.add_argument("--port", type=int, default=8400, help="Web server target port")
     parser_dash.add_argument("--telemetry-db", type=str, default="costopt_telemetry.db", help="Path to telemetry SQLite database")
     parser_dash.add_argument("--cache-db", type=str, default="costopt_cache.db", help="Path to cache SQLite database")
 
@@ -57,7 +57,7 @@ def main():
             # We insert using SQLiteTelemetryLogger bulk insert logic
             from costopt.telemetry import SQLiteTelemetryLogger
             logger = SQLiteTelemetryLogger(db_path=args.output)
-            logger._flush_batch(events)
+            logger.bulk_insert(events)
             logger.shutdown()
             print(f"Successfully generated and loaded {len(events)} telemetry rows directly into SQLite DB: {args.output}")
         else:

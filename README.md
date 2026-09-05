@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.1.9-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.0-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-2K%2B-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-purple" alt="Open VSX Installs"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.7-blue" alt="VS Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.8-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
@@ -103,7 +103,7 @@ flowchart TD
     API --> DB
     Failover --> DB
     
-    DB --> Dashboard["CostOpt FinOps Dashboard<br/>http://127.0.0.1:8000"]
+    DB --> Dashboard["CostOpt FinOps Dashboard<br/>http://127.0.0.1:8400"]
 ```
 
 ---
@@ -148,7 +148,7 @@ costopt dashboard
 # Or run via Python module:
 python -m costopt.main dashboard
 ```
-Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
+Open **[http://127.0.0.1:8400](http://127.0.0.1:8400)** in your browser.
 
 ---
 
@@ -310,7 +310,7 @@ Run the automated Pytest test suite:
 python -m pytest tests/ -v
 ```
 
-**Test Status**: All 18 test cases pass cleanly (100% pass rate).
+**Test Status**: All 27 test cases pass cleanly (100% pass rate).
 
 ---
 

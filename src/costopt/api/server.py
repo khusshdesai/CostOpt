@@ -16,8 +16,13 @@ app = FastAPI(
 # Enable CORS for local cross-origin dashboard testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "http://127.0.0.1:8400", "http://localhost:8400",
+        "http://127.0.0.1:8000", "http://localhost:8000",
+        "http://127.0.0.1:3000", "http://localhost:3000"
+    ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -64,9 +69,19 @@ def is_port_in_use(host: str, port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex((host, port)) == 0
 
+def is_costopt_server(host: str, port: int) -> bool:
+    import urllib.request
+    try:
+        url = f"http://{host}:{port}/api/vscode/health"
+        req = urllib.request.Request(url, headers={'User-Agent': 'CostOpt-Ping'})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
 def start_server(
     host: str = "127.0.0.1",
-    port: int = 8000,
+    port: int = 8400,
     telemetry_db: str = "costopt_telemetry.db",
     cache_db: str = "costopt_cache.db"
 ) -> None:
@@ -75,18 +90,20 @@ def start_server(
     
     target_port = port
     if is_port_in_use(host, target_port):
-        print(f"Notice: Port {target_port} is already in use by an active CostOpt server instance.")
-        print(f"Connecting to running server at http://{host}:{target_port}...")
-        # Check if user passed a custom port or if default 8000 is occupied
-        for alt_port in range(port + 1, port + 10):
-            if not is_port_in_use(host, alt_port):
-                target_port = alt_port
-                break
-        if target_port == port:
-            print(f"CostOpt Dashboard is already live at http://{host}:{port}")
+        if is_costopt_server(host, target_port):
+            print(f"Notice: CostOpt Dashboard server is already running at http://{host}:{target_port}")
             return
+        else:
+            print(f"Notice: Port {target_port} is occupied by another service (e.g. vLLM or Ollama).")
+            for alt_port in range(port + 1, port + 20):
+                if not is_port_in_use(host, alt_port):
+                    target_port = alt_port
+                    break
+            print(f"Starting LLM CostOpt Dashboard on fallback port: http://{host}:{target_port}")
+            print(f"💡 Note: Update your VS Code setting 'costopt.endpoint' to 'http://{host}:{target_port}' if using the extension.")
+    else:
+        print(f"Starting LLM CostOpt Dashboard on http://{host}:{target_port}")
 
-    print(f"Starting LLM CostOpt Dashboard on http://{host}:{target_port}")
     uvicorn.run(app, host=host, port=target_port)
 
 

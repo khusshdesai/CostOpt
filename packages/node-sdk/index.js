@@ -37,7 +37,7 @@ class CircuitBreaker {
 }
 
 class TelemetryLogger {
-  constructor(endpointUrl = 'http://127.0.0.1:8000/api/telemetry') {
+  constructor(endpointUrl = 'http://127.0.0.1:8400/api/telemetry') {
     this.endpointUrl = endpointUrl;
   }
 

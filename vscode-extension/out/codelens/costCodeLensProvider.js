@@ -28,8 +28,7 @@ class CostCodeLensProvider {
             const lineNumber = position.line + 1; // 1-indexed
             const range = new vscode.Range(position, position);
             // Check if line telemetry exists
-            const lineStat = fileStats?.line_stats.find(s => s.line_number === lineNumber) ||
-                (fileStats?.line_stats.length ? fileStats.line_stats[0] : null);
+            const lineStat = fileStats?.line_stats.find(s => s.line_number === lineNumber) || null;
             let title;
             if (lineStat && lineStat.call_count > 0) {
                 const avgCost = lineStat.avg_cost_per_call > 0 ? `$${lineStat.avg_cost_per_call.toFixed(4)}` : '$0.00 (cached)';
