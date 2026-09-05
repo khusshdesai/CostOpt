@@ -1,29 +1,52 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# costopt.yaml — CostOpt Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This file controls CostOpt's routing rules, fallback chains, and alerts.
+# Customize it based on which models and providers YOUR project uses.
+#
+# ─── How Routing Works ────────────────────────────────────────────────────────
+# 1. ROUTING RULES fire BEFORE the API call — proactively reroute to a cheaper
+#    model when prompt keywords and length match the rule.
+# 2. FALLBACKS fire AFTER an API error — defines which model to try next if
+#    the primary call fails (e.g. rate limit, outage, quota exceeded).
+# ═══════════════════════════════════════════════════════════════════════════════
+
 routing:
+
+  # ─── Fallback Chains ────────────────────────────────────────────────────────
+  # Format:
+  #   <your-primary-model>:
+  #     - <fallback-model-1>
+  #     - <fallback-model-2>
+  #
+  # Example: If gpt-4o fails, try gpt-4o-mini, then your local Ollama model.
+  # Replace model names with whatever YOU are using.
   fallbacks:
-    claude-3-5-sonnet:
-      - gpt-4o
-      - claude-3-haiku
-      - llama3
     gpt-4o:
       - gpt-4o-mini
-      - llama3
-      - deepseek-r1
+
+  # ─── Routing Rules ──────────────────────────────────────────────────────────
+  # Each rule can have:
+  #   name             - Human-readable label (for logs/dashboard)
+  #   keywords         - If ANY keyword appears in the prompt, the rule triggers
+  #   max_prompt_length - Only trigger if prompt is shorter than this (chars)
+  #   original_model   - Only apply this rule if THIS model was requested
+  #   target_model     - Route to this cheaper/faster model instead
+  #
+  # Example: Short classification prompts sent to gpt-4o → reroute to gpt-4o-mini
   rules:
-    - name: "Simple text classification"
+    - name: "Short classification — reroute to mini"
       keywords: ["classify", "yes/no", "sentiment", "label", "extract"]
       max_prompt_length: 500
       original_model: "gpt-4o"
       target_model: "gpt-4o-mini"
-    - name: "Local zero-cost offline processing"
-      keywords: ["local", "offline", "private", "draft", "summary"]
-      max_prompt_length: 2000
-      original_model: "gpt-4o"
-      target_model: "llama3"
 
+# ─── Budget Alerts ────────────────────────────────────────────────────────────
+# Set enabled: true and add your Slack webhook to receive budget alerts.
 alerts:
   enabled: false
   daily_budget_usd: 10.00
   monthly_budget_usd: 50.00
   cooldown_minutes: 60
   slack_webhook_url: ""
-

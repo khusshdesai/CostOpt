@@ -115,6 +115,8 @@ class ModelRegistry:
     ) -> Optional[ModelMetadata]:
         req_meta = self.get_model(requested_model)
         if not req_meta:
+            # BUG-12: model not in registry — return None so DecisionEngine
+            # falls back to YAML routing rules instead of silently returning DIRECT
             return None
 
         # For high-complexity reasoning or coding tasks, retain original model

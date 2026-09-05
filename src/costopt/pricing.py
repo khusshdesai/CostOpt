@@ -66,15 +66,25 @@ def get_pricing(provider: str, model: str, pricing_dir: Optional[str] = None) ->
             return provider_data[model_key]
         
         # 2. Check bidirectional fuzzy/substring match (Fix Bug 5)
+        # BUG-7 fix: boundary-aware prefix match — 'gpt-4' no longer matches 'gpt-4o'
+        # Requires that the remaining suffix after the shared prefix starts with a separator.
+        def _prefix_boundary_match(shorter: str, longer: str) -> bool:
+            if not longer.startswith(shorter):
+                return False
+            if len(longer) == len(shorter):
+                return True  # exact (already handled above)
+            return longer[len(shorter)] in ('-', '.', ' ', '_', '/')
+
         best_match = None
         best_len = 0
         for known_model, pricing_info in provider_data.items():
-            # Check if model_key is a prefix/substring of known_model OR known_model is a prefix/substring of model_key
-            if (model_key.startswith(known_model) or known_model.startswith(model_key) or 
-                known_model in model_key or model_key in known_model):
-                if len(known_model) > best_len:
-                    best_match = pricing_info
-                    best_len = len(known_model)
+            is_match = (
+                _prefix_boundary_match(model_key, known_model) or
+                _prefix_boundary_match(known_model, model_key)
+            )
+            if is_match and len(known_model) > best_len:
+                best_match = pricing_info
+                best_len = len(known_model)
         if best_match:
             return best_match
 

@@ -33,7 +33,7 @@ class DecisionEngine:
         self,
         config_path: str = "costopt.yaml",
         cache_db_path: str = "costopt_cache.db",
-        similarity_threshold: float = 0.90
+        similarity_threshold: float = 1.0  # BUG-14 fix: default matches CostOpt default (exact match)
     ):
         self.analyzer = RequestAnalyzer()
         self.registry = ModelRegistry()
@@ -91,7 +91,13 @@ class DecisionEngine:
             task_type=analysis.task_type,
             complexity=analysis.complexity
         )
-        candidate_name = candidate_meta.name if candidate_meta else requested_model
+        if candidate_meta:
+            candidate_name = candidate_meta.name
+        else:
+            # BUG-12 fix: unknown model — registry has no metadata for it.
+            # Keep the requested model; routing will be handled by YAML router rules in CostOptRouter.
+            candidate_name = requested_model
+            trace.append(f"Routing Evaluation: Model '{requested_model}' not in internal registry. Routing deferred to YAML rules.")
 
         # 4. Fallback & Quality Guardrails Evaluation
         fallbacks = req_model_meta.fallbacks if req_model_meta else []

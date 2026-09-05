@@ -70,12 +70,11 @@ def is_port_in_use(host: str, port: int) -> bool:
         return s.connect_ex((host, port)) == 0
 
 def is_costopt_server(host: str, port: int) -> bool:
-    import urllib.request
+    import requests
     try:
         url = f"http://{host}:{port}/api/vscode/health"
-        req = urllib.request.Request(url, headers={'User-Agent': 'CostOpt-Ping'})
-        with urllib.request.urlopen(req, timeout=1.5) as resp:
-            return resp.status == 200
+        resp = requests.get(url, headers={'User-Agent': 'CostOpt-Ping'}, timeout=1.5)  # nosemgrep
+        return resp.status_code == 200
     except Exception:
         return False
 

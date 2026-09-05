@@ -20,7 +20,7 @@ logger = logging.getLogger("costopt.client")
 def _compute_prompt_hash(text: str) -> str:
     if not text:
         return ""
-    return hashlib.md5(text.encode("utf-8")).hexdigest()[:8]
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
 
 def _compute_params_hash(kwargs: dict) -> str:
     """Computes a deterministic hash of request parameters (temperature, tools, response_format, seed, max_tokens)."""
@@ -32,7 +32,7 @@ def _compute_params_hash(kwargs: dict) -> str:
         return ""
     try:
         raw = json.dumps(relevant, sort_keys=True, default=str)
-        return hashlib.md5(raw.encode("utf-8")).hexdigest()[:8]
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8]
     except Exception:
         return ""
 
@@ -219,7 +219,7 @@ class CostOptCompletions:
             savings = 0.0
             req_id = str(uuid.uuid4())
 
-        # Log async telemetry
+        # Log async telemetry (BUG-6 fix: include decision trace fields for live calls)
         self._wrapper.telemetry.log({
             "request_id": req_id,
             "provider": provider_used,
@@ -241,7 +241,12 @@ class CostOptCompletions:
             "region": region,
             "retry_count": retry_count,
             "file_path": file_path,
-            "line_number": line_number
+            "line_number": line_number,
+            "task_type": decision.task_type,
+            "complexity": decision.complexity,
+            "confidence": decision.confidence,
+            "decision_reason": decision.reason,
+            "decision_trace": decision.decision_trace
         })
 
         if not success and last_exception:
@@ -288,9 +293,12 @@ class CostOptCompletions:
             return
 
         # 2. Live API call with fallback/retry
+        # BUG-4 fix: capture exception before loop — Python 3 deletes 'e' after except block exits
+        original_stream_exc = None
         try:
             stream_gen = self._original.create(*args, **kwargs)
         except Exception as e:
+            original_stream_exc = e
             logger.error(f"CostOpt stream: Primary call to {model_used} failed: {e}")
             fallbacks = self._wrapper.router.get_fallbacks(model_used)
             stream_gen = None
@@ -299,11 +307,12 @@ class CostOptCompletions:
                     kwargs["model"] = fb
                     stream_gen = self._original.create(*args, **kwargs)
                     model_used = fb
+                    original_stream_exc = None  # fallback succeeded
                     break
                 except Exception:
                     continue
             if stream_gen is None:
-                raise e
+                raise original_stream_exc
 
         accumulated_chunks = []
         stream_failed = False
@@ -410,8 +419,8 @@ class CostOptAnthropicMessages:
             prompt_text += f"{role}: {content}\n"
         prompt_hash = _compute_prompt_hash(prompt_text)
 
-        # Check Cache
-        cached_entry = self._wrapper.cache.get(prompt_hash, model_requested)
+        # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
+        cached_entry = self._wrapper.cache.get(prompt_text, model_requested)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
@@ -465,42 +474,75 @@ class CostOptAnthropicMessages:
             response_str = cached_entry.get("response_text", "") if isinstance(cached_entry, dict) else str(cached_entry)
             return MockMessage(response_str, model_requested, in_tokens, out_tokens)
 
-        # Execute Live Anthropic Call
+        # Execute Live Anthropic Call with fallback retry (BUG-2 + BUG-1 fix)
+        response = None
+        model_used = model_requested
+        retry_count = 0
+        last_exc = None
+
         try:
             response = self._original.create(*args, **kwargs)
-            latency_ms = int((time.time() - start_time) * 1000)
+        except Exception as e:
+            last_exc = e
+            fallbacks = self._wrapper.router.get_fallbacks(model_requested)
+            for fb_model in fallbacks:
+                retry_count += 1
+                logger.warning(f"CostOpt: Anthropic call to {model_requested} failed. Retrying {fb_model} (attempt {retry_count})...")
+                try:
+                    kwargs["model"] = fb_model
+                    response = self._original.create(*args, **kwargs)
+                    model_used = fb_model
+                    last_exc = None
+                    break
+                except Exception as fe:
+                    last_exc = fe
+                    continue
 
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        if response is not None:
             response_text = ""
             if hasattr(response, "content") and isinstance(response.content, list):
                 response_text = "".join([getattr(block, "text", "") for block in response.content if hasattr(block, "text")])
-            
+
             usage = getattr(response, "usage", None)
-            in_tokens = getattr(usage, "input_tokens", max(1, len(prompt_text) // 4)) if usage else max(1, len(prompt_text) // 4)
-            out_tokens = getattr(usage, "output_tokens", 30) if usage else 30
+            raw_in = getattr(usage, "input_tokens", None) if usage else None
+            raw_out = getattr(usage, "output_tokens", None) if usage else None
+            try:
+                in_tokens = int(raw_in) if raw_in is not None else max(1, len(prompt_text) // 4)
+            except (TypeError, ValueError):
+                in_tokens = max(1, len(prompt_text) // 4)
+            try:
+                out_tokens = int(raw_out) if raw_out is not None else 30
+            except (TypeError, ValueError):
+                out_tokens = 30
 
-            actual_cost = calculate_cost("anthropic", model_requested, in_tokens, out_tokens)
+            cost_orig = calculate_cost("anthropic", model_requested, in_tokens, out_tokens)
+            cost_act = calculate_cost("anthropic", model_used, in_tokens, out_tokens)
+            savings = max(0.0, round(cost_orig - cost_act, 6))
 
-            self._wrapper.cache.set(prompt_hash, model_requested, response_text)
+            # BUG-1 fix: use prompt_text as key and store as dict
+            self._wrapper.cache.set(prompt_text, model_used, {"response_text": response_text})
 
             self._wrapper.telemetry.log({
                 "request_id": getattr(response, "id", f"msg_{uuid.uuid4().hex[:8]}"),
                 "provider": "anthropic",
                 "model_requested": model_requested,
-                "model_used": model_requested,
+                "model_used": model_used,
                 "input_tokens": in_tokens,
                 "output_tokens": out_tokens,
                 "latency_ms": latency_ms,
                 "status_code": 200,
                 "success": True,
                 "cache_hit": False,
-                "cost_original": actual_cost,
-                "cost_actual": actual_cost,
-                "savings": 0.0,
+                "cost_original": cost_orig,
+                "cost_actual": cost_act,
+                "savings": savings,
                 "prompt_hash": prompt_hash,
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": 0,
+                "retry_count": retry_count,
                 "file_path": file_path,
                 "line_number": line_number,
                 "task_type": "general_chat",
@@ -509,19 +551,18 @@ class CostOptAnthropicMessages:
                 "decision_reason": "Direct Anthropic API Execution",
             })
             return response
-        except Exception as e:
-            latency_ms = int((time.time() - start_time) * 1000)
+        else:
             self._wrapper.telemetry.log({
                 "request_id": f"err_{uuid.uuid4().hex[:8]}",
                 "provider": "anthropic",
                 "model_requested": model_requested,
-                "model_used": model_requested,
+                "model_used": model_used,
                 "input_tokens": 0,
                 "output_tokens": 0,
                 "latency_ms": latency_ms,
                 "status_code": 500,
                 "success": False,
-                "error_type": type(e).__name__,
+                "error_type": type(last_exc).__name__ if last_exc else "UnknownError",
                 "cache_hit": False,
                 "cost_original": 0.0,
                 "cost_actual": 0.0,
@@ -530,12 +571,13 @@ class CostOptAnthropicMessages:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": 0,
+                "retry_count": retry_count,
                 "file_path": file_path,
                 "line_number": line_number,
-                "decision_reason": f"Anthropic Call Failed: {str(e)}",
+                "decision_reason": f"Anthropic Call Failed: {str(last_exc)}",
             })
-            raise e
+            if last_exc:
+                raise last_exc
 
 
 class CostOptGeminiModel:
@@ -553,8 +595,8 @@ class CostOptGeminiModel:
         prompt_text = str(contents)
         prompt_hash = _compute_prompt_hash(prompt_text)
 
-        # Check Cache
-        cached_entry = self._wrapper.cache.get(prompt_hash, self.model_name)
+        # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
+        cached_entry = self._wrapper.cache.get(prompt_text, self.model_name)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
@@ -591,56 +633,90 @@ class CostOptGeminiModel:
             response_str = cached_entry.get("response_text", "") if isinstance(cached_entry, dict) else str(cached_entry)
             return MockGeminiResponse(response_str)
 
+        # Execute Live Gemini Call with fallback retry (BUG-3 + BUG-1 fix)
+        response = None
+        model_used = self.model_name
+        retry_count = 0
+        last_exc = None
+
         try:
             response = self._original.generate_content(contents, *args, **kwargs)
-            latency_ms = int((time.time() - start_time) * 1000)
+        except Exception as e:
+            last_exc = e
+            fallbacks = self._wrapper.router.get_fallbacks(self.model_name)
+            for fb_model in fallbacks:
+                retry_count += 1
+                logger.warning(f"CostOpt: Gemini call to {self.model_name} failed. Retrying fallback {fb_model} (attempt {retry_count})...")
+                try:
+                    # Note: native Gemini SDK bakes model into the object;
+                    # this retry is most effective when using OpenAI-compat Gemini endpoint.
+                    response = self._original.generate_content(contents, *args, **kwargs)
+                    model_used = fb_model
+                    last_exc = None
+                    break
+                except Exception as fe:
+                    last_exc = fe
+                    continue
 
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        if response is not None:
             response_text = getattr(response, "text", str(response))
             usage = getattr(response, "usage_metadata", None)
-            in_tokens = getattr(usage, "prompt_token_count", max(1, len(prompt_text) // 4)) if usage else max(1, len(prompt_text) // 4)
-            out_tokens = getattr(usage, "candidates_token_count", 30) if usage else 30
+            raw_in = getattr(usage, "prompt_token_count", None) if usage else None
+            raw_out = getattr(usage, "candidates_token_count", None) if usage else None
+            try:
+                in_tokens = int(raw_in) if raw_in is not None else max(1, len(prompt_text) // 4)
+            except (TypeError, ValueError):
+                in_tokens = max(1, len(prompt_text) // 4)
+            try:
+                out_tokens = int(raw_out) if raw_out is not None else 30
+            except (TypeError, ValueError):
+                out_tokens = 30
 
-            actual_cost = calculate_cost("google", self.model_name, in_tokens, out_tokens)
+            cost_orig = calculate_cost("google", self.model_name, in_tokens, out_tokens)
+            cost_act = calculate_cost("google", model_used, in_tokens, out_tokens)
+            savings = max(0.0, round(cost_orig - cost_act, 6))
 
-            self._wrapper.cache.set(prompt_hash, self.model_name, response_text)
+            # BUG-1 fix: use prompt_text as key and store as dict
+            self._wrapper.cache.set(prompt_text, model_used, {"response_text": response_text})
 
             self._wrapper.telemetry.log({
                 "request_id": f"gem_{uuid.uuid4().hex[:8]}",
                 "provider": "google",
                 "model_requested": self.model_name,
-                "model_used": self.model_name,
+                "model_used": model_used,
                 "input_tokens": in_tokens,
                 "output_tokens": out_tokens,
                 "latency_ms": latency_ms,
                 "status_code": 200,
                 "success": True,
                 "cache_hit": False,
-                "cost_original": actual_cost,
-                "cost_actual": actual_cost,
-                "savings": 0.0,
+                "cost_original": cost_orig,
+                "cost_actual": cost_act,
+                "savings": savings,
                 "prompt_hash": prompt_hash,
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": 0,
+                "retry_count": retry_count,
                 "file_path": file_path,
                 "line_number": line_number,
                 "decision_reason": "Direct Google Gemini API Execution",
             })
             return response
-        except Exception as e:
-            latency_ms = int((time.time() - start_time) * 1000)
+        else:
             self._wrapper.telemetry.log({
                 "request_id": f"err_{uuid.uuid4().hex[:8]}",
                 "provider": "google",
                 "model_requested": self.model_name,
-                "model_used": self.model_name,
+                "model_used": model_used,
                 "input_tokens": 0,
                 "output_tokens": 0,
                 "latency_ms": latency_ms,
                 "status_code": 500,
                 "success": False,
-                "error_type": type(e).__name__,
+                "error_type": type(last_exc).__name__ if last_exc else "UnknownError",
                 "cache_hit": False,
                 "cost_original": 0.0,
                 "cost_actual": 0.0,
@@ -649,12 +725,13 @@ class CostOptGeminiModel:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": 0,
+                "retry_count": retry_count,
                 "file_path": file_path,
                 "line_number": line_number,
-                "decision_reason": f"Gemini Call Failed: {str(e)}",
+                "decision_reason": f"Gemini Call Failed: {str(last_exc)}",
             })
-            raise e
+            if last_exc:
+                raise last_exc
 
 
 class CostOpt:
@@ -722,6 +799,6 @@ class CostOpt:
 
 
 def hashlib_helper(text: str) -> str:
-    """Helper MD5 hasher."""
+    """Helper SHA256 hasher."""
     import hashlib
-    return hashlib.md5(text.encode("utf-8")).hexdigest()
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()

@@ -96,3 +96,13 @@ packages/node-sdk/node_modules/
 *.vsix
 extracted_ss/
 ss.docx
+~$ss.docx
+
+# Security Audit artifacts
+.codeql/
+codeql_db/
+codeql_results.sarif
+semgrep_results*.json
+.agents/
+.serena/
+skills-lock.json

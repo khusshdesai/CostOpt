@@ -16,6 +16,7 @@ class CircuitBreaker:
         # Maps location key (e.g. "main.py:42") -> list of monotonic timestamps
         self._history: Dict[str, List[float]] = {}
         self._lock = threading.Lock()
+        self._call_count = 0  # BUG-8: used for periodic stale-key eviction
 
     def check_and_record(self, location_key: str) -> None:
         """Checks if calls from location_key exceed rate threshold within time window.
@@ -31,6 +32,14 @@ class CircuitBreaker:
             recent_timestamps = [t for t in timestamps if t >= cutoff]
             recent_timestamps.append(now)
             self._history[location_key] = recent_timestamps
+
+            # BUG-8 fix: periodic eviction of stale keys to prevent unbounded dict growth
+            self._call_count += 1
+            if self._call_count % 100 == 0:
+                stale = [k for k, v in self._history.items()
+                         if not any(t >= cutoff for t in v)]
+                for k in stale:
+                    del self._history[k]
 
             if len(recent_timestamps) > self.max_calls:
                 msg = (

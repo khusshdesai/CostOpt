@@ -137,19 +137,22 @@ def get_savings_chart_data(limit: int = 30):
     try:
         with _get_connection(_TELEMETRY_DB) as conn:
             cursor = conn.cursor()
+            # BUG-11 fix: DESC subquery gets most recent N days; outer query restores ASC for chart ordering
             cursor.execute("""
-                SELECT 
-                    strftime('%Y-%m-%d', timestamp) as date,
-                    SUM(cost_original) as baseline_cost,
-                    SUM(cost_actual) as actual_cost,
-                    SUM(savings) as savings
-                FROM telemetry
-                GROUP BY date
-                ORDER BY date ASC
-                LIMIT ?
+                SELECT date, baseline_cost, actual_cost, savings FROM (
+                    SELECT 
+                        strftime('%Y-%m-%d', timestamp) as date,
+                        SUM(cost_original) as baseline_cost,
+                        SUM(cost_actual) as actual_cost,
+                        SUM(savings) as savings
+                    FROM telemetry
+                    GROUP BY date
+                    ORDER BY date DESC
+                    LIMIT ?
+                ) ORDER BY date ASC
             """, (limit,))
             rows = cursor.fetchall()
-            
+
             return [
                 {
                     "date": r["date"],
@@ -419,8 +422,10 @@ def inject_simulation_data():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.api_route("/telemetry/reset", methods=["GET", "POST"])
+@router.post("/reset")
 def reset_telemetry():
     """Deletes all telemetry records from the database, resetting all cost metrics to zero."""
+    # BUG-9 fix: single canonical definition — previously duplicated at line 965, causing silent shadowing
     try:
         with _get_connection(_TELEMETRY_DB) as conn:
             cursor = conn.cursor()
@@ -530,7 +535,7 @@ def simulate_sdk_call(req: SimulationRequest):
     from datetime import datetime, timezone
     from costopt.optimization import DecisionEngine
     
-    prompt_hash = hashlib.md5(req.prompt.encode('utf-8')).hexdigest()
+    prompt_hash = hashlib.sha256(req.prompt.encode('utf-8')).hexdigest()
     timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     req_id = f"sim-{uuid.uuid4().hex[:12]}"
     
@@ -903,11 +908,11 @@ def get_vscode_warnings(budget: float = 50.0):
                     })
 
             # 3. Recent input token drift
+            # BUG-13 fix: AVG must aggregate INSIDE a subquery — ORDER BY+LIMIT on aggregate SELECT has no effect in SQLite
             cursor.execute("""
-                SELECT AVG(input_tokens) as avg_tokens
-                FROM telemetry
-                ORDER BY timestamp DESC
-                LIMIT 20
+                SELECT AVG(input_tokens) as avg_tokens FROM (
+                    SELECT input_tokens FROM telemetry ORDER BY timestamp DESC LIMIT 20
+                )
             """)
             recent_tokens = cursor.fetchone()
             if recent_tokens and recent_tokens["avg_tokens"] and recent_tokens["avg_tokens"] > 3000:
@@ -959,3 +964,14 @@ def get_vscode_feature_stats():
 def get_vscode_features():
     """Returns cost attribution grouped by feature tag for VS Code sidebar."""
     return _vscode_features_impl()
+
+@router.post("/telemetry/reset")
+def reset_telemetry():
+    """Resets and wipes all telemetry request logs from the database."""
+    try:
+        with _get_connection(_TELEMETRY_DB) as conn:
+            conn.execute("DELETE FROM telemetry;")
+            conn.commit()
+        return {"status": "success", "message": "Telemetry logs wiped successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset telemetry DB: {e}")

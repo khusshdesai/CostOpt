@@ -21,6 +21,24 @@ def cmd_clear_cache(args):
     """Clears the local SQLite cache."""
     cache = SQLiteCache(db_path=args.cache_db)
     cache.clear()
+    print(f"Successfully cleared prompt cache DB: {args.cache_db}")
+
+def cmd_clear_telemetry(args):
+    """Clears all logs from the telemetry SQLite database."""
+    import sqlite3
+    db_path = getattr(args, "telemetry_db", "costopt_telemetry.db")
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("DELETE FROM telemetry;")
+            conn.commit()
+        print(f"Successfully cleared all telemetry logs from: {db_path}")
+    except Exception as e:
+        print(f"Failed to clear telemetry database: {e}")
+
+def cmd_reset_all(args):
+    """Clears both local telemetry database and cache database."""
+    cmd_clear_telemetry(args)
+    cmd_clear_cache(args)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -48,13 +66,20 @@ def main():
     parser_clear = subparsers.add_parser("clear-cache", help="Wipes the local prompt response cache")
     parser_clear.add_argument("--cache-db", type=str, default="costopt_cache.db", help="Path to cache SQLite database")
 
+    # 4. clear-telemetry
+    parser_cleartel = subparsers.add_parser("clear-telemetry", help="Wipes all telemetry request logs")
+    parser_cleartel.add_argument("--telemetry-db", type=str, default="costopt_telemetry.db", help="Path to telemetry SQLite database")
+
+    # 5. reset-all
+    parser_reset = subparsers.add_parser("reset-all", help="Wipes both telemetry logs and prompt cache")
+    parser_reset.add_argument("--telemetry-db", type=str, default="costopt_telemetry.db", help="Path to telemetry SQLite database")
+    parser_reset.add_argument("--cache-db", type=str, default="costopt_cache.db", help="Path to cache SQLite database")
+
     args = parser.parse_args()
 
     if args.command == "generate-data":
         if args.format == "sqlite" or args.output.endswith(".db"):
-            # Insert directly into telemetry database instead of saving a file!
             events = generate_telemetry_dataset(args.records, args.days, args.seed)
-            # We insert using SQLiteTelemetryLogger bulk insert logic
             from costopt.telemetry import SQLiteTelemetryLogger
             logger = SQLiteTelemetryLogger(db_path=args.output)
             logger.bulk_insert(events)
@@ -66,6 +91,10 @@ def main():
         cmd_dashboard(args)
     elif args.command == "clear-cache":
         cmd_clear_cache(args)
+    elif args.command == "clear-telemetry":
+        cmd_clear_telemetry(args)
+    elif args.command == "reset-all":
+        cmd_reset_all(args)
 
 if __name__ == "__main__":
     main()

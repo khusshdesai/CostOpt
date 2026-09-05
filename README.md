@@ -65,7 +65,7 @@ print(response.choices[0].message.content)
 
 | Feature | Description |
 |---|---|
-| 🗄️ **Multi-Tier Prompt Cache** | Tier 1 exact MD5 hash matching (<15ms, $0.00) + Tier 2 local TF-IDF cosine vector similarity matching. Includes parameter hashing (`temperature`, `tools`, `response_format`, `seed`). |
+| 🗄️ **Multi-Tier Prompt Cache** | Tier 1 exact SHA-256 hash matching (<15ms, $0.00) + Tier 2 local TF-IDF cosine vector similarity matching. Includes parameter hashing (`temperature`, `tools`, `response_format`, `seed`). |
 | 🧠 **Intelligent Decision Engine** | Classifies prompts into 7 task categories (`simple_classification`, `extraction`, `summarization`, `coding`, `reasoning`, `creative_generation`, `general_chat`) with confidence scoring. |
 | 🔀 **Policy-Aware Model Router** | Rule-based keyword and task-complexity routing — simple tasks auto-rerouted to efficient models (`gpt-4o` ➔ `gpt-4o-mini` / `deepseek-r1`). |
 | 🛡️ **Circuit Breaker** | Detects call velocity loops from the same file/line location and trips `CostOptCircuitBreakerError`. |
@@ -87,7 +87,7 @@ flowchart TD
     
     subgraph Engine ["Intelligent Decision Pipeline"]
         Analyzer["1. Request Analyzer<br/>Task & Complexity Classification"]
-        CacheLayer["2. Semantic Cache Layer<br/>Tier 1: MD5 Exact - Tier 2: TF-IDF Cosine"]
+        CacheLayer["2. Semantic Cache Layer<br/>Tier 1: SHA-256 Exact - Tier 2: TF-IDF Cosine"]
         Registry["3. Model Capability Registry<br/>Capability Scores & Token Pricing"]
         Guardrails["4. Fallback & Quality Guardrails<br/>Confidence & Outage Failover"]
         Estimator["5. Cost Estimator<br/>Baseline vs Target Cost Delta"]
@@ -256,39 +256,201 @@ ai_client = CostOpt(OpenAI())
 
 ---
 
-## 🔧 Configuration & Policy Rules
+## 🔧 Configuration Guide (`costopt.yaml`)
 
-Control model routing policies and fallback chains in `costopt.yaml`:
+CostOpt reads a `costopt.yaml` file from your working directory at startup. If no file is found, a commented template is auto-generated for you.
+
+The config has **two jobs**:
+1. **Routing Rules** — fire _before_ the API call to proactively reroute to a cheaper model
+2. **Fallback Chains** — fire _after_ an API failure to automatically retry on a different model
+
+---
+
+### Full Config Structure
 
 ```yaml
 routing:
-  rules:
-    - name: "Simple text classification"
-      keywords: ["classify", "sentiment", "yes/no", "label"]
-      max_prompt_length: 500
-      original_model: "gpt-4o"
-      target_model: "gpt-4o-mini"
-
   fallbacks:
-    gpt-4o:
-      - "claude-3-5-sonnet"
-      - "gpt-4o-mini"
+    <your-primary-model>:
+      - <fallback-model-1>
+      - <fallback-model-2>
+
+  rules:
+    - name: "Human-readable label shown in dashboard"
+      keywords: ["word1", "word2"]   # trigger if ANY keyword found in prompt
+      max_prompt_length: 500         # only trigger for short prompts (chars)
+      original_model: "gpt-4o"      # only apply if THIS model was requested
+      target_model: "gpt-4o-mini"   # reroute to this cheaper model instead
+
+alerts:
+  enabled: false
+  daily_budget_usd: 10.00
+  monthly_budget_usd: 50.00
+  cooldown_minutes: 60
+  slack_webhook_url: ""
 ```
 
-Add custom or local Ollama models by dropping a `.yaml` into the `pricing/providers/` directory:
+> **Note**: All fields in `rules` are optional. A rule with no `original_model` matches any model. A rule with no `keywords` matches any prompt within the length limit.
 
+---
+
+### Provider Examples
+
+Pick the providers **you** are using and copy the relevant fallback chains.
+
+#### OpenAI
 ```yaml
-provider: "ollama"
-models:
-  llama3:
-    input_cost_per_1m: 0.0
-    output_cost_per_1m: 0.0
-  deepseek-r1:
-    input_cost_per_1m: 0.0
-    output_cost_per_1m: 0.0
+routing:
+  fallbacks:
+    gpt-4o:
+      - gpt-4o-mini       # 10x cheaper, same provider
+    gpt-4o-mini:
+      - gpt-4o            # escalate up if mini can't handle it
+    gpt-4:
+      - gpt-4o
+      - gpt-4o-mini
+
+  rules:
+    - name: "Route short/simple tasks to mini"
+      keywords: ["classify", "yes/no", "sentiment", "label", "extract", "summarize"]
+      max_prompt_length: 800
+      original_model: "gpt-4o"
+      target_model: "gpt-4o-mini"
+```
+
+#### Anthropic (Claude)
+```yaml
+routing:
+  fallbacks:
+    claude-3-5-sonnet:
+      - claude-3-haiku    # 5x cheaper
+    claude-3-opus:
+      - claude-3-5-sonnet
+      - claude-3-haiku
+    claude-3-haiku:
+      - claude-3-5-sonnet # escalate if needed
+
+  rules:
+    - name: "Simple tasks — sonnet to haiku"
+      keywords: ["classify", "extract", "translate", "summarize"]
+      max_prompt_length: 600
+      original_model: "claude-3-5-sonnet"
+      target_model: "claude-3-haiku"
+```
+
+#### Google Gemini
+```yaml
+routing:
+  fallbacks:
+    gemini-1.5-pro:
+      - gemini-1.5-flash  # much cheaper
+    gemini-1.5-flash:
+      - gemini-1.5-pro    # escalate on failure
+
+  rules:
+    - name: "Extraction tasks — pro to flash"
+      keywords: ["extract", "list", "bullet", "summarize", "tldr"]
+      max_prompt_length: 1000
+      original_model: "gemini-1.5-pro"
+      target_model: "gemini-1.5-flash"
+```
+
+#### Ollama (Local / $0.00)
+```yaml
+routing:
+  fallbacks:
+    llama3:
+      - mistral           # another local model
+      - gpt-4o-mini       # cloud fallback if local fails
+    qwen2.5:0.5b:
+      - llama3
+    mistral:
+      - llama3
+      - gpt-4o-mini
+```
+
+#### Cross-Provider (Mixed Stack)
+```yaml
+# If your primary cloud model fails, fall back to a different provider entirely:
+routing:
+  fallbacks:
+    gpt-4o:
+      - claude-3-5-sonnet   # cross-provider failover
+      - gemini-1.5-flash
+      - llama3              # local zero-cost last resort
+    claude-3-5-sonnet:
+      - gpt-4o
+      - gemini-1.5-flash
+    gemini-1.5-flash:
+      - gpt-4o-mini
+      - llama3
 ```
 
 ---
+
+### 🚨 Outage Scenario Walkthrough
+
+Here is what happens when OpenAI hits a rate limit during a production spike:
+
+```
+Your app calls:  client.chat.completions.create(model="gpt-4o", ...)
+         │
+         ▼
+CostOpt intercepts → checks cache → MISS
+         │
+         ▼
+Calls gpt-4o  ──►  429 Rate Limit Error
+         │
+         ▼
+Reads fallbacks for "gpt-4o" from costopt.yaml:
+  1st: claude-3-5-sonnet  →  ✅ success — response returned
+         │
+         ▼
+Logs to telemetry: model_requested=gpt-4o, model_used=claude-3-5-sonnet
+Dashboard shows: FALLBACK decision, $0 wasted on the failed call
+```
+
+**Your code sees zero errors.** The exception is swallowed by CostOpt's retry loop and the next available model responds transparently.
+
+To set this up, add to your `costopt.yaml`:
+```yaml
+routing:
+  fallbacks:
+    gpt-4o:
+      - claude-3-5-sonnet   # cross-provider, catches OpenAI outages
+      - gemini-1.5-flash    # Google backup
+      - llama3              # local offline last resort
+```
+
+---
+
+### Routing Rules: When Do They Fire?
+
+Rules fire **proactively** — _before_ the API call, the moment CostOpt intercepts your request.
+
+| Field | Behavior |
+|---|---|
+| `original_model` | Only apply this rule if the caller requested exactly this model |
+| `keywords` | Rule triggers if **any one** keyword appears anywhere in the prompt text |
+| `max_prompt_length` | Rule only triggers if the combined prompt is shorter than this (in characters) |
+| `target_model` | The cheaper model to call instead |
+
+**All three conditions must pass** for the rule to fire. If no rule matches, the original model is used.
+
+---
+
+### Resetting Telemetry & Cache
+
+```bash
+python -m costopt reset-all         # wipe both telemetry logs + prompt cache
+python -m costopt clear-telemetry   # wipe only the activity log
+python -m costopt clear-cache       # wipe only the prompt cache
+```
+
+Or via the dashboard at **Settings → Policies tab → Reset buttons**.
+
+---
+
 
 ## 🖥️ VS Code Extension
 

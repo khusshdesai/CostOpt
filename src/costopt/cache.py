@@ -47,9 +47,9 @@ class SQLiteCache:
             raise e
 
     def _get_hash(self, text: str, params_hash: str = "") -> str:
-        """Returns MD5 hash for exact matching, incorporating parameters if provided."""
+        """Returns SHA256 hash for exact matching, incorporating parameters if provided."""
         combined = f"{text}||{params_hash}" if params_hash else text
-        return hashlib.md5(combined.encode("utf-8")).hexdigest()
+        return hashlib.sha256(combined.encode("utf-8")).hexdigest()
 
     def _jaccard_similarity(self, text1: str, text2: str) -> float:
         """Calculates fast Jaccard similarity index based on lowercase word sets, stripping punctuation."""

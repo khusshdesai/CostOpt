@@ -19,16 +19,18 @@ class AnomalyDetector:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                # Aggregate total cost by day (YYYY-MM-DD)
+                # BUG-5 fix: subquery gets most recent N days (DESC), outer query restores ASC for Z-score ordering
                 cursor.execute("""
-                    SELECT 
-                        strftime('%Y-%m-%d', timestamp) as date,
-                        SUM(cost_actual) as total_cost,
-                        COUNT(*) as request_count
-                    FROM telemetry
-                    GROUP BY date
-                    ORDER BY date ASC
-                    LIMIT ?
+                    SELECT date, total_cost, request_count FROM (
+                        SELECT 
+                            strftime('%Y-%m-%d', timestamp) as date,
+                            SUM(cost_actual) as total_cost,
+                            COUNT(*) as request_count
+                        FROM telemetry
+                        GROUP BY date
+                        ORDER BY date DESC
+                        LIMIT ?
+                    ) ORDER BY date ASC
                 """, (lookback_days,))
                 
                 rows = cursor.fetchall()

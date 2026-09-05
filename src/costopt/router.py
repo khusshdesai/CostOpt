@@ -34,36 +34,57 @@ class CostOptRouter:
             logger.error(f"Error loading router configuration from {self.config_path}: {e}")
 
     def _create_default_config(self) -> None:
-        """Writes a default template for routing and fallback behavior."""
-        default_config = {
-            "routing": {
-                "rules": [
-                  {
-                    "name": "Simple text classification",
-                    "keywords": ["classify", "yes/no", "sentiment", "label", "extract"],
-                    "max_prompt_length": 500,
-                    "original_model": "gpt-4o",
-                    "target_model": "gpt-4o-mini"
-                  },
-                  {
-                    "name": "Short summary translation",
-                    "keywords": ["summarize", "translate", "tldr"],
-                    "max_prompt_length": 800,
-                    "original_model": "claude-3-5-sonnet",
-                    "target_model": "claude-3-haiku"
-                  }
-                ],
-                "fallbacks": {
-                  "gpt-4o": ["claude-3-5-sonnet", "gpt-4o-mini"],
-                  "claude-3-5-sonnet": ["gpt-4o", "claude-3-haiku"],
-                  "gpt-4": ["gpt-4o", "claude-3-5-sonnet"]
-                }
-            }
-        }
+        """Writes a minimal commented template for the user to fill in their own models."""
+        template = """\
+# ═══════════════════════════════════════════════════════════════════════════════
+# costopt.yaml — CostOpt Configuration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Customize this file with YOUR models and providers.
+#
+# ─── How Routing Works ────────────────────────────────────────────────────────
+# 1. ROUTING RULES fire BEFORE the API call — reroute to a cheaper model when
+#    prompt keywords and length match.
+# 2. FALLBACKS fire AFTER an API error — which model to try next if the primary
+#    call fails (rate limit, outage, quota exceeded).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+routing:
+
+  # ─── Fallback Chains ────────────────────────────────────────────────────────
+  # Format:
+  #   <primary-model>:
+  #     - <fallback-1>
+  #     - <fallback-2>
+  fallbacks:
+    gpt-4o:
+      - gpt-4o-mini
+
+  # ─── Routing Rules ──────────────────────────────────────────────────────────
+  # name             - Label shown in logs and dashboard
+  # keywords         - Trigger if ANY keyword appears in the prompt
+  # max_prompt_length - Only trigger if prompt is shorter than this (chars)
+  # original_model   - Only apply if THIS model was requested
+  # target_model     - Route to this cheaper/faster model instead
+  rules:
+    - name: "Short classification — reroute to mini"
+      keywords: ["classify", "yes/no", "sentiment", "label", "extract"]
+      max_prompt_length: 500
+      original_model: "gpt-4o"
+      target_model: "gpt-4o-mini"
+
+# ─── Budget Alerts ────────────────────────────────────────────────────────────
+alerts:
+  enabled: false
+  daily_budget_usd: 10.00
+  monthly_budget_usd: 50.00
+  cooldown_minutes: 60
+  slack_webhook_url: ""
+"""
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
-                yaml.dump(default_config, f, default_flow_style=False)
-            logger.info(f"Created default configuration file at {self.config_path}")
+                f.write(template)
+            logger.info(f"Created default configuration template at {self.config_path}")
         except Exception as e:
             logger.error(f"Failed to write default config at {self.config_path}: {e}")
 

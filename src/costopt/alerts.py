@@ -3,8 +3,7 @@ import time
 import json
 import logging
 import threading
-import urllib.request
-import urllib.error
+import requests
 import yaml
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
@@ -161,20 +160,22 @@ class SlackAlertManager:
         }
 
         try:
-            req_data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                self.config.slack_webhook_url,
-                data=req_data,
+            url = self.config.slack_webhook_url
+            if not (url.startswith("http://") or url.startswith("https://")):
+                logger.error(f"Invalid Slack webhook URL scheme: {url}")
+                return False
+            resp = requests.post(
+                url,
+                json=payload,
                 headers={"Content-Type": "application/json", "User-Agent": "CostOpt-Alerts/0.1.8"},
-                method="POST"
+                timeout=5.0
             )
-            with urllib.request.urlopen(req, timeout=5.0) as resp:
-                if resp.status == 200:
-                    logger.info(f"Slack alert successfully dispatched: [{alert_type}]")
-                    return True
-                else:
-                    logger.warning(f"Slack webhook returned status code {resp.status}")
-                    return False
+            if resp.status_code == 200:
+                logger.info(f"Slack alert successfully dispatched: [{alert_type}]")
+                return True
+            else:
+                logger.warning(f"Slack webhook returned status code {resp.status_code}")
+                return False
         except Exception as e:
             logger.error(f"Failed to dispatch Slack alert webhook: {e}")
             return False
