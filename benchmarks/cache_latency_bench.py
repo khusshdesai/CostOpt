@@ -56,9 +56,29 @@ def _print_header(iterations: int, db_rows: int, threshold: float) -> None:
     print(f"DB rows      : {db_rows} pre-seeded (realistic cache size)")
     print(f"Iterations   : {iterations} per scenario")
     print(f"Fuzzy thresh : {threshold}")
-    print(f"Fuzzy window : 50 most recent entries (ORDER BY created_at DESC LIMIT 50)")
+    print(f"Fuzzy window : 50 most recently inserted entries (ORDER BY rowid DESC LIMIT 50)")
     print("=" * 60)
     print()
+
+
+def _preflight(label: str, fn, expect_hit: bool) -> None:
+    """
+    Run fn() once before timing and assert the result is correct.
+    Aborts with a clear message if the scenario would silently measure
+    the wrong thing (e.g. a miss timed as a hit).
+    """
+    result = fn()
+    if expect_hit and result is None:
+        print(f"  PREFLIGHT FAILED: '{label}'")
+        print(f"  Expected a cache HIT but got None.")
+        print(f"  Check that the seed prompt was written before timing,")
+        print(f"  and that the similarity threshold is not too strict.")
+        sys.exit(1)
+    if not expect_hit and result is not None:
+        print(f"  PREFLIGHT FAILED: '{label}'")
+        print(f"  Expected a cache MISS (None) but got a result.")
+        print(f"  The cold-miss prompt may accidentally match a seeded entry.")
+        sys.exit(1)
 
 
 def _run_scenario(label: str, fn, iterations: int) -> list:
@@ -94,8 +114,8 @@ def main() -> None:
                         help="Timing samples per scenario (default: 300)")
     parser.add_argument("--db-rows", type=int, default=500,
                         help="Rows pre-seeded in test DB (default: 500)")
-    parser.add_argument("--threshold", type=float, default=0.75,
-                        help="Fuzzy similarity threshold (default: 0.75)")
+    parser.add_argument("--threshold", type=float, default=0.70,
+                        help="Fuzzy similarity threshold (default: 0.70)")
     args = parser.parse_args()
 
     _print_header(args.iterations, args.db_rows, args.threshold)
@@ -108,17 +128,20 @@ def main() -> None:
 
         MODEL = "gpt-4o"
 
-        # Prompt stored in the middle of history (exact hit target)
-        STORED_PROMPT = "Tell me about topic number 250 in detail and explain the concept thoroughly"
+        # Derive exact-hit prompt from db_rows so it is always in the seeded range.
+        # Using db_rows // 2 guarantees the target index exists regardless of --db-rows.
+        exact_target_idx = args.db_rows // 2
+        STORED_PROMPT = f"Tell me about topic number {exact_target_idx} in detail and explain the concept thoroughly"
 
-        # Near-duplicate of FUZZY_SEED — within LIMIT 50 window at end of seeding
+        # Near-duplicate pair — verified similarity: Jaccard=0.81, TF-IDF=0.93
+        # Both exceed the default 0.70 threshold with comfortable headroom.
         FUZZY_SEED = (
-            "Explain the concept of transformer attention mechanisms "
-            "and how they differ from RNNs in natural language processing."
+            "Explain transformer attention mechanisms and how they differ "
+            "from recurrent neural networks in NLP."
         )
         FUZZY_QUERY = (
-            "Explain transformer attention mechanisms "
-            "and how they are different from recurrent networks."
+            "Explain transformer attention mechanisms and how they are different "
+            "from recurrent neural networks in NLP."
         )
 
         # A completely unseen prompt — guaranteed cold miss
@@ -157,6 +180,14 @@ def main() -> None:
         cache.set(FUZZY_SEED, MODEL, FAKE_RESPONSE, ttl_seconds=3600)
         print("Done.\n")
 
+        print("Preflight checks (validating each scenario before timing)...")
+        _preflight("Cold MISS",  lambda: cache.get(COLD_PROMPT,   MODEL), expect_hit=False)
+        _preflight("Exact HIT",  lambda: cache.get(STORED_PROMPT, MODEL), expect_hit=True)
+        if args.threshold < 1.0:
+            _preflight("Fuzzy HIT", lambda: cache.get(FUZZY_QUERY, MODEL), expect_hit=True)
+        print("All preflight checks passed.")
+        print()
+
         print("Results")
         print("-" * 60)
 
@@ -169,7 +200,7 @@ def main() -> None:
 
         # 2. Exact HIT
         _run_scenario(
-            label=f"2. Exact HIT  (SHA-256 hash match, {args.db_rows}-row DB)",
+            label=f"2. Exact HIT  (SHA-256 hash match, index={exact_target_idx}/{args.db_rows})",
             fn=lambda: cache.get(STORED_PROMPT, MODEL),
             iterations=args.iterations,
         )
