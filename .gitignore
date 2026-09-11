@@ -106,3 +106,7 @@ semgrep_results*.json
 .agents/
 .serena/
 skills-lock.json
+
+# Local personal documents
+resume/
+
