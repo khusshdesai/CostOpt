@@ -118,6 +118,11 @@ def main() -> None:
                         help="Fuzzy similarity threshold (default: 0.70)")
     args = parser.parse_args()
 
+    if args.db_rows < 1:
+        parser.error("--db-rows must be at least 1")
+    if args.iterations < 1:
+        parser.error("--iterations must be at least 1")
+
     _print_header(args.iterations, args.db_rows, args.threshold)
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
