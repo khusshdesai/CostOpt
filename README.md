@@ -11,8 +11,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.2-blue" alt="PyPI Version"></a>
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-2K%2B-brightgreen" alt="Downloads"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-2K%2B%20installs-purple" alt="Open VSX Installs"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-4K%2B-brightgreen" alt="Downloads"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-4K%2B%20installs-purple" alt="Open VSX Installs"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.10-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
