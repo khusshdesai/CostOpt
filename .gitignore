@@ -92,11 +92,9 @@ scripts/
 # VS Code Extension and Node SDK dependencies
 node_modules/
 vscode-extension/node_modules/
+vscode-extension/out/
 packages/node-sdk/node_modules/
 *.vsix
-extracted_ss/
-ss.docx
-~$ss.docx
 
 # Security Audit artifacts
 .codeql/
