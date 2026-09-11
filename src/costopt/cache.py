@@ -115,9 +115,13 @@ class SQLiteCache:
                         return None
 
                 # 2. Near-Duplicate Matching (Fuzzy Caching) if similarity threshold < 1.0
+                # Bounded to the 50 most recent entries (ORDER BY created_at DESC LIMIT 50)
+                # so that fuzzy lookup latency stays constant regardless of database size.
+                # Near-duplicate prompts are almost always recent; exact SHA-256 already
+                # handles matches further back in history in O(1).
                 if self.similarity_threshold < 1.0:
                     cursor.execute(
-                        "SELECT prompt_hash, prompt_text, response_json, expires_at FROM prompt_cache WHERE model = ?",
+                        "SELECT prompt_hash, prompt_text, response_json, expires_at FROM prompt_cache WHERE model = ? ORDER BY created_at DESC LIMIT 50",
                         (model,)
                     )
                     rows = cursor.fetchall()
