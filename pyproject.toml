@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "costopt"
-version = "0.2.2"
+version = "0.2.12"
 description = "Drop-in LLM API cost optimization SDK with lexical similarity caching, smart model routing, and local observability dashboard"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,13 +20,13 @@ dependencies = [
     "pyyaml>=6.0.0",
     "pydantic>=2.0.0",
     "tiktoken>=0.5.0",
+    "requests>=2.31.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-mock>=3.10.0",
-    "requests>=2.31.0",
 ]
 
 [project.scripts]
@@ -36,10 +36,11 @@ costopt = "costopt.main:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = [
-    "pricing/providers/*.yaml",
-    "pricing/schema.yaml",
-    "dashboard/*.html",
-    "dashboard/*.css",
-    "dashboard/*.js",
+"costopt" = [
+    "../../pricing/providers/*.yaml",
+    "../../pricing/schema.yaml",
+    "../../dashboard/*.html",
+    "../../dashboard/*.css",
+    "../../dashboard/*.js",
+    "../../dashboard/*.png",
 ]

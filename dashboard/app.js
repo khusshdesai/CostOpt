@@ -213,12 +213,17 @@ function renderOverviewKPIs(overviewData, recsData) {
   const savingsRateEl = document.getElementById('kpi-savings-rate');
   const savingsContextEl = document.getElementById('kpi-savings-context');
   const opportunitiesEl = document.getElementById('kpi-opportunities');
+  const cacheHitRateEl = document.getElementById('kpi-cache-hit-rate');
+  const cacheHitSubEl = document.getElementById('kpi-cache-hit-sub');
+  const cacheHitBadgeEl = document.getElementById('kpi-cache-hit-badge');
 
   if (!overviewData) return;
 
   const actualCost = overviewData.cost_actual || 0.0;
   const baselineCost = overviewData.cost_baseline || 0.0;
   const totalSavings = overviewData.total_savings || 0.0;
+  const cacheHitRate = overviewData.cache_hit_rate || 0.0;
+  const totalRequests = overviewData.total_requests || 0;
 
   let savingsRate = 0.0;
   if (baselineCost > 0) {
@@ -239,6 +244,40 @@ function renderOverviewKPIs(overviewData, recsData) {
   if (savingsRateEl) savingsRateEl.textContent = `${savingsRate.toFixed(1)}%`;
   if (savingsContextEl) savingsContextEl.textContent = `${savingsRate.toFixed(1)}% (${formatCurrency(totalSavings)})`;
   if (opportunitiesEl) opportunitiesEl.textContent = formatCurrency(unrealizedSavings);
+
+  // Cache Hit Rate card — color-coded by effectiveness
+  if (cacheHitRateEl) {
+    cacheHitRateEl.textContent = `${cacheHitRate.toFixed(1)}%`;
+    cacheHitRateEl.className = 'bento-val';
+    if (cacheHitRate >= 30) {
+      cacheHitRateEl.classList.add('text-success');
+    } else if (cacheHitRate >= 10) {
+      cacheHitRateEl.classList.add('text-warning');
+    } else {
+      cacheHitRateEl.classList.add('text-danger');
+    }
+  }
+
+  if (cacheHitSubEl) {
+    const cachedCount = Math.round((cacheHitRate / 100) * totalRequests);
+    cacheHitSubEl.textContent = totalRequests > 0
+      ? `${cachedCount.toLocaleString()} of ${totalRequests.toLocaleString()} calls saved`
+      : 'Prompt cache effectiveness';
+  }
+
+  if (cacheHitBadgeEl) {
+    cacheHitBadgeEl.className = 'badge';
+    if (cacheHitRate >= 30) {
+      cacheHitBadgeEl.textContent = 'EFFICIENT';
+      cacheHitBadgeEl.classList.add('badge-success');
+    } else if (cacheHitRate >= 10) {
+      cacheHitBadgeEl.textContent = 'WARMING UP';
+      cacheHitBadgeEl.classList.add('badge-warning');
+    } else {
+      cacheHitBadgeEl.textContent = 'LOW REUSE';
+      cacheHitBadgeEl.classList.add('badge-info');
+    }
+  }
 }
 
 function renderOverviewChart(chartData) {

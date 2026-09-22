@@ -10,12 +10,12 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.2-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.12-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-4K%2B-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-4K%2B%20installs-purple" alt="Open VSX Installs"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.11-blue" alt="VS Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.12-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
 </p>
 
@@ -161,7 +161,7 @@ The web console features a modern dark-mode aesthetic (`#050505` canvas, translu
   <img src="https://raw.githubusercontent.com/khusshdesai/CostOpt/main/docs/images/v2_overview.png" width="880" alt="Dashboard Overview" />
 </p>
 
-> Net Financial Impact Hero Glass Card (`$0.0093` / dynamic savings), smooth spend trend area chart, bento metrics grid (Actual Spend, Efficiency Gain, Opportunities, System Health), top recommendation card, and live telemetry feed.
+> Net Financial Impact Hero Glass Card (dynamic total savings), smooth spend trend area chart, bento metrics grid (**Actual Spend**, **Efficiency Gain**, **Optimization Opportunities**, **Cache Hit Rate** — live % of calls served from local cache, color-coded green/yellow/blue), top recommendation card, and live telemetry feed.
 
 ### 2. Spend Analytics
 <p align="center">
@@ -442,9 +442,13 @@ Rules fire **proactively** — _before_ the API call, the moment CostOpt interce
 ### Resetting Telemetry & Cache
 
 ```bash
-python -m costopt reset-all         # wipe both telemetry logs + prompt cache
-python -m costopt clear-telemetry   # wipe only the activity log
-python -m costopt clear-cache       # wipe only the prompt cache
+costopt export                          # export all telemetry to CSV (auto-named)
+costopt export --last 7                 # last 7 days only
+costopt export --format json            # JSON instead of CSV
+costopt export --output report.csv      # custom output filename
+costopt reset-all                       # wipe both telemetry logs + prompt cache
+costopt clear-telemetry                 # wipe only the activity log
+costopt clear-cache                     # wipe only the prompt cache
 ```
 
 Or via the dashboard at **Settings → Policies tab → Reset buttons**.
@@ -491,7 +495,7 @@ python -m pytest tests/ -v
 > Yes. Pass the wrapped client (`CostOpt(OpenAI()).client`) into any framework that accepts a raw OpenAI client object.
 
 **Q: How does fuzzy/semantic cache matching work?**
-> CostOpt uses TF-IDF word and character n-gram cosine vector similarity. Set `similarity_threshold` in `costopt.yaml` to enable near-duplicate matching (e.g., `0.90` = 90% similar prompts return cached response).
+> CostOpt uses TF-IDF word and character n-gram cosine vector similarity. Pass `similarity_threshold` (e.g., `0.90`) to the `CostOpt()` constructor to enable near-duplicate matching — prompts that are 90%+ similar will return the cached response without an API call.
 
 **Q: How do I reset all telemetry to start fresh?**
 > Click **Reset Telemetry Analytics** on the Policies tab in the dashboard console.
