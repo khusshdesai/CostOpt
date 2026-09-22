@@ -11,8 +11,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.12-blue" alt="PyPI Version"></a>
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-4K%2B-brightgreen" alt="Downloads"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-4K%2B%20installs-purple" alt="Open VSX Installs"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-5K%2B-brightgreen" alt="Downloads"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-5K%2B%20installs-purple" alt="Open VSX Installs"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.12-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python"></a>
@@ -457,6 +457,12 @@ Or via the dashboard at **Settings → Policies tab → Reset buttons**.
 
 
 ## 🖥️ VS Code Extension
+
+> **Prerequisites:** The extension requires the CostOpt Python package installed separately. Install it first:
+> ```bash
+> pip install costopt
+> ```
+> Then start the local server with `costopt dashboard --port 8400` before using the extension features.
 
 Install the **CostOpt** extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode) or [Open VSX Registry](https://open-vsx.org/extension/khusshdesai/costopt-vscode).
 

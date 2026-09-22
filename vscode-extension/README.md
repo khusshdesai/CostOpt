@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.2-blue?style=flat-square" alt="PyPI"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.12-blue?style=flat-square" alt="PyPI"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License"></a>
-  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-4K%2B%20installs-purple?style=flat-square" alt="Open VSX"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.11-blue?style=flat-square" alt="VS Marketplace"></a>
+  <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-5K%2B%20installs-purple?style=flat-square" alt="Open VSX"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.12-blue?style=flat-square" alt="VS Marketplace"></a>
 </p>
  
 <p align="center">
@@ -23,6 +23,12 @@
  
 ---
  
+> **Prerequisites:** This extension requires the CostOpt Python package. Install it first:
+> ```bash
+> pip install costopt
+> ```
+> Then run `costopt dashboard --port 8400` to start the local server before using extension features.
+
 ## 💡 What is CostOpt?
  
 CostOpt puts **real-time LLM cost metrics, feature spend attribution, runaway billing circuit breakers, and Slack alerts** directly into your VS Code editor — giving you full visibility as you write code, *before* shipping to production.
