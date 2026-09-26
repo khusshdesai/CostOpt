@@ -104,3 +104,6 @@ semgrep_results*.json
 .agents/
 .serena/
 skills-lock.json
+archify-tool/
+resume/
+~$*
