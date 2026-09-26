@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.13-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.14-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-5K%2B-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-5K%2B%20installs-purple" alt="Open VSX Installs"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.13-blue" alt="VS Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.14-blue" alt="VS Marketplace"></a>
   <a href="https://github.com/khusshdesai/CostOpt/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Code-1.80%2B-purple" alt="VS Code"></a>
@@ -79,34 +79,14 @@ print(response.choices[0].message.content)
 
 ## 🏗️ Architecture
 
-> **🔗 [View Interactive Architecture Diagram](docs/images/costopt-architecture.html)** — Explorable signal-flow diagram with guided views, zoom, and export.
+<p align="center">
+  <a href="docs/images/costopt-architecture.html">
+    <img src="docs/images/architecture_diagram.png" alt="CostOpt Intelligent Architecture & Decision Pipeline" width="100%">
+  </a>
+</p>
 
-```mermaid
-flowchart TD
-    App["Calling Application"] -->|ChatCompletion.create| Interceptor["CostOpt SDK Client Interceptor"]
-    Interceptor --> CB["Circuit Breaker Check"]
-    CB --> Engine["Centralized Decision Engine"]
-    
-    subgraph Engine ["Intelligent Decision Pipeline"]
-        Analyzer["1. Request Analyzer<br/>Task & Complexity Classification"]
-        CacheLayer["2. Semantic Cache Layer<br/>Tier 1: SHA-256 Exact - Tier 2: TF-IDF Cosine"]
-        Registry["3. Model Capability Registry<br/>Capability Scores & Token Pricing"]
-        Guardrails["4. Fallback & Quality Guardrails<br/>Confidence & Outage Failover"]
-        Estimator["5. Cost Estimator<br/>Baseline vs Target Cost Delta"]
-    end
-    
-    CacheLayer -->|Cache HIT <15ms| Hit["Return Local Response $0.00"]
-    CacheLayer -->|Cache MISS| Registry
-    Registry --> Guardrails
-    Guardrails -->|Decision: REROUTE / DIRECT| API["Upstream LLM API"]
-    API -->|Outage 429/500| Failover["Failover Secondary Model"]
-    
-    Hit --> DB[("SQLite Telemetry & Cache DB")]
-    API --> DB
-    Failover --> DB
-    
-    DB --> Dashboard["CostOpt FinOps Dashboard<br/>http://127.0.0.1:8400"]
-```
+> 💡 **Interactive Canvas:** Click the diagram above or open [`docs/images/costopt-architecture.html`](docs/images/costopt-architecture.html) to interactively explore the Signal Flow canvas with guided tour views (`01 Request Interception`, `02 Intelligent Decision Engine`, `03 Observability & FinOps`), filter by component layers, and inspect real-time routing paths.
+
 
 ---
 
