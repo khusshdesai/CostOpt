@@ -1,0 +1,22 @@
+{
+  "anthropic": {
+    "effective_date": "2026-08-17",
+    "file": "anthropic.yaml"
+  },
+  "google": {
+    "effective_date": "2026-08-17",
+    "file": "google.yaml"
+  },
+  "huggingface": {
+    "effective_date": "unknown",
+    "file": "huggingface.yaml"
+  },
+  "ollama": {
+    "effective_date": "unknown",
+    "file": "ollama.yaml"
+  },
+  "openai": {
+    "effective_date": "2026-08-17",
+    "file": "openai.yaml"
+  }
+}

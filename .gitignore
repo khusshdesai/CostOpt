@@ -89,6 +89,11 @@ build/
 # Local test and development scripts
 scripts/
 
+# Tests (local only — not shipped with the package)
+tests/
+tests/scratch_diag.py
+tests/test_three_fixes.py
+
 # VS Code Extension and Node SDK dependencies
 node_modules/
 vscode-extension/node_modules/

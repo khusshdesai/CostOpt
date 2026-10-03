@@ -130,3 +130,80 @@ def get_all_loaded_models(pricing_dir: Optional[str] = None) -> Dict[str, List[s
     dir_cache = _PRICING_CACHE.get(target_dir, {})
     return {provider: list(models.keys()) for provider, models in dir_cache.items()}
 
+
+def check_pricing_staleness(
+    pricing_dir: Optional[str] = None,
+    warn_after_days: int = 60,
+) -> List[Dict[str, Any]]:
+    """
+    Checks each provider YAML for an ``effective_date`` field and flags any
+    that have not been updated in more than *warn_after_days* days.
+
+    Returns a list of dicts for stale providers, e.g.:
+        [{"provider": "openai", "effective_date": "2025-11-01",
+          "days_since_update": 90, "file": "openai.yaml"}]
+
+    An empty list means all pricing files are fresh (or have no effective_date).
+    Call this at SDK init or from a ``costopt status`` command to surface the risk
+    that stored prices no longer match what the provider actually charges.
+    """
+    from datetime import datetime, timezone
+
+    target_dir = os.path.abspath(pricing_dir or DEFAULT_PRICING_DIR)
+    stale: List[Dict[str, Any]] = []
+    today = datetime.now(timezone.utc).date()
+
+    if not os.path.exists(target_dir):
+        logger.warning(f"Pricing directory not found: {target_dir}")
+        return stale
+
+    for filename in os.listdir(target_dir):
+        if not (filename.endswith(".yaml") or filename.endswith(".yml")):
+            continue
+        filepath = os.path.join(target_dir, filename)
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if not data or not isinstance(data, dict):
+                continue
+
+            provider = str(data.get("provider", filename.replace(".yaml", ""))).lower()
+            effective_date_raw = data.get("effective_date")
+            if not effective_date_raw:
+                # No date at all — treat as unknown, surface as a warning
+                stale.append({
+                    "provider": provider,
+                    "effective_date": None,
+                    "days_since_update": None,
+                    "file": filename,
+                    "warning": "No effective_date set in pricing YAML.",
+                })
+                continue
+
+            effective_date = datetime.strptime(str(effective_date_raw), "%Y-%m-%d").date()
+            days_old = (today - effective_date).days
+
+            if days_old >= warn_after_days:
+                stale.append({
+                    "provider": provider,
+                    "effective_date": str(effective_date),
+                    "days_since_update": days_old,
+                    "file": filename,
+                    "warning": (
+                        f"Pricing data is {days_old} days old "
+                        f"(threshold: {warn_after_days} days). "
+                        "Verify rates against the provider's pricing page."
+                    ),
+                })
+        except Exception as e:
+            logger.warning(f"Could not check staleness for {filename}: {e}")
+
+    if stale:
+        for entry in stale:
+            logger.warning(
+                f"[CostOpt] Stale pricing: {entry['provider']} \u2014 {entry.get('warning', '')}"
+            )
+    else:
+        logger.debug("All pricing files are within the staleness threshold.")
+
+    return stale

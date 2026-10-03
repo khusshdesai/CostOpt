@@ -87,15 +87,24 @@ class SQLiteCache:
         return dot_product / (mag1 * mag2)
 
 
-    def get(self, prompt_text: str, model: str, params_hash: str = "") -> Optional[Dict[str, Any]]:
-        """Queries local cache for an existing response."""
+    def get(self, prompt_text: str, model: str, params_hash: str = "") -> Tuple[Optional[Dict[str, Any]], float]:
+        """
+        Queries local cache for an existing response.
+
+        Returns
+        -------
+        (response, similarity_score)
+            response         – parsed JSON dict on a hit, None on a miss.
+            similarity_score – 1.0 for an exact hash hit, the real TF-IDF/Jaccard
+                               score (0.0–1.0) for a fuzzy hit, 0.0 on a miss.
+        """
         prompt_hash = self._get_hash(prompt_text, params_hash)
         now = int(time.time())
 
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                
+
                 # 1. Exact Match Lookup
                 cursor.execute(
                     "SELECT response_json, expires_at FROM prompt_cache WHERE prompt_hash = ? AND model = ?",
@@ -106,13 +115,16 @@ class SQLiteCache:
                     response_json, expires_at = row
                     if expires_at > now:
                         logger.debug("Cache HIT (exact match)")
-                        return json.loads(response_json)
+                        return json.loads(response_json), 1.0
                     else:
-                        # Expired, clean it up
-                        cursor.execute("DELETE FROM prompt_cache WHERE prompt_hash = ? AND model = ?", (prompt_hash, model))
+                        # Expired — clean it up
+                        cursor.execute(
+                            "DELETE FROM prompt_cache WHERE prompt_hash = ? AND model = ?",
+                            (prompt_hash, model)
+                        )
                         conn.commit()
                         logger.debug("Cache expired (exact match found but expired)")
-                        return None
+                        return None, 0.0
 
                 # 2. Near-Duplicate Matching (Fuzzy Caching) if similarity threshold < 1.0
                 # Bounded to the 50 most recently inserted entries (ORDER BY rowid DESC LIMIT 50)
@@ -123,7 +135,8 @@ class SQLiteCache:
                 # SHA-256 already handles matches further back in history in O(1).
                 if self.similarity_threshold < 1.0:
                     cursor.execute(
-                        "SELECT prompt_hash, prompt_text, response_json, expires_at FROM prompt_cache WHERE model = ? ORDER BY rowid DESC LIMIT 50",
+                        "SELECT prompt_hash, prompt_text, response_json, expires_at "
+                        "FROM prompt_cache WHERE model = ? ORDER BY rowid DESC LIMIT 50",
                         (model,)
                     )
                     rows = cursor.fetchall()
@@ -133,7 +146,7 @@ class SQLiteCache:
                     for r_hash, r_text, r_json, r_expires in rows:
                         if r_expires <= now:
                             continue
-                        
+
                         jaccard = self._jaccard_similarity(prompt_text, r_text)
                         tfidf = self._tfidf_similarity(prompt_text, r_text)
                         similarity = max(jaccard, tfidf)
@@ -144,14 +157,17 @@ class SQLiteCache:
 
                     if best_match:
                         response_json, matched_hash = best_match
-                        logger.info(f"Cache HIT (fuzzy match, similarity: {best_similarity:.2f}, match_hash: {matched_hash})")
-                        return json.loads(response_json)
+                        logger.info(
+                            f"Cache HIT (fuzzy match, similarity: {best_similarity:.4f}, "
+                            f"match_hash: {matched_hash})"
+                        )
+                        return json.loads(response_json), best_similarity
 
         except Exception as e:
             logger.error(f"Error querying cache database: {e}")
-        
+
         logger.debug("Cache MISS")
-        return None
+        return None, 0.0
 
     def set(self, prompt_text: str, model: str, response: Dict[str, Any], ttl_seconds: int = 3600, params_hash: str = "") -> None:
         """Stores a prompt completion response in the local cache database."""

@@ -20,18 +20,18 @@ class SemanticCacheLayer:
     def evaluate(self, prompt: str, model: str) -> CacheResult:
         """
         Evaluates cache lookup across two tiers:
-        Tier 1: Exact MD5 Hash Match (<15ms)
-        Tier 2: Semantic TF-IDF Vector Cosine Match
+        Tier 1: Exact SHA-256 Hash Match  -> similarity_score = 1.0
+        Tier 2: Fuzzy TF-IDF/Jaccard Match -> similarity_score = real computed score
         """
-        response = self.cache_engine.get(prompt, model)
+        response, similarity_score = self.cache_engine.get(prompt, model)
+
         if response is not None:
-            # Determine if exact or semantic based on threshold
-            match_type = "exact" if self.cache_engine.similarity_threshold >= 1.0 else "semantic"
-            score = 1.0 if match_type == "exact" else 0.92
+            # Exact hits return 1.0 from cache.get(); fuzzy hits return the real score.
+            match_type = "exact" if similarity_score == 1.0 else "semantic"
             return CacheResult(
                 hit=True,
                 match_type=match_type,
-                similarity_score=score,
+                similarity_score=similarity_score,
                 response=response
             )
 
@@ -45,3 +45,4 @@ class SemanticCacheLayer:
     def store(self, prompt: str, model: str, response: Dict[str, Any], ttl_seconds: int = 86400 * 7):
         """Stores prompt-response completion payload in SQLite cache."""
         self.cache_engine.set(prompt, model, response, ttl_seconds=ttl_seconds)
+

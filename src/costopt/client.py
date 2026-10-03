@@ -97,7 +97,7 @@ class CostOptCompletions:
             return self._handle_stream(start_time, prompt_text, prompt_hash, params_hash, model_requested, model_used, environment, application, region, file_path, line_number, args, kwargs)
 
         # 2. Check Cache using model_used and params_hash (Fix Bug 1 & Bug 2)
-        cached_data = self._wrapper.cache.get(prompt_text, model_used, params_hash)
+        cached_data, _ = self._wrapper.cache.get(prompt_text, model_used, params_hash)
         if cached_data:
             latency_ms = int((time.time() - start_time) * 1000)
             
@@ -259,7 +259,7 @@ class CostOptCompletions:
         kwargs["model"] = model_used
 
         # 1. Check cache first using model_used and params_hash (Fix Bug 1 & Bug 2)
-        cached_data = self._wrapper.cache.get(prompt_text, model_used, params_hash)
+        cached_data, _ = self._wrapper.cache.get(prompt_text, model_used, params_hash)
         if cached_data and "_stream_chunks" in cached_data:
             latency_ms = int((time.time() - start_time) * 1000)
             for raw_chunk in cached_data["_stream_chunks"]:
@@ -420,7 +420,7 @@ class CostOptAnthropicMessages:
         prompt_hash = _compute_prompt_hash(prompt_text)
 
         # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
-        cached_entry = self._wrapper.cache.get(prompt_text, model_requested)
+        cached_entry, _ = self._wrapper.cache.get(prompt_text, model_requested)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
@@ -596,7 +596,7 @@ class CostOptGeminiModel:
         prompt_hash = _compute_prompt_hash(prompt_text)
 
         # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
-        cached_entry = self._wrapper.cache.get(prompt_text, self.model_name)
+        cached_entry, _ = self._wrapper.cache.get(prompt_text, self.model_name)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
