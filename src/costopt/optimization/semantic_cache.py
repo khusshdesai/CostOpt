@@ -17,13 +17,13 @@ class SemanticCacheLayer:
     def __init__(self, db_path: str = "costopt_cache.db", similarity_threshold: float = 0.90):
         self.cache_engine = SQLiteCache(db_path=db_path, similarity_threshold=similarity_threshold)
 
-    def evaluate(self, prompt: str, model: str) -> CacheResult:
+    def evaluate(self, prompt: str, model: str, force_exact: bool = False) -> CacheResult:
         """
         Evaluates cache lookup across two tiers:
         Tier 1: Exact SHA-256 Hash Match  -> similarity_score = 1.0
-        Tier 2: Fuzzy TF-IDF/Jaccard Match -> similarity_score = real computed score
+        Tier 2: Fuzzy TF-IDF/Jaccard Match -> similarity_score = real computed score (skipped if force_exact=True)
         """
-        response, similarity_score = self.cache_engine.get(prompt, model)
+        response, similarity_score = self.cache_engine.get(prompt, model, force_exact=force_exact)
 
         if response is not None:
             # Exact hits return 1.0 from cache.get(); fuzzy hits return the real score.

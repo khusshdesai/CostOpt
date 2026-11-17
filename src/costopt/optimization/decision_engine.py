@@ -33,13 +33,28 @@ class DecisionEngine:
         self,
         config_path: str = "costopt.yaml",
         cache_db_path: str = "costopt_cache.db",
-        similarity_threshold: float = 1.0  # BUG-14 fix: default matches CostOpt default (exact match)
+        similarity_threshold: float = 1.0,  # BUG-14 fix: default matches CostOpt default (exact match)
+        strategy: Optional[str] = None
     ):
         self.analyzer = RequestAnalyzer()
         self.registry = ModelRegistry()
         self.cache_layer = SemanticCacheLayer(db_path=cache_db_path, similarity_threshold=similarity_threshold)
         self.estimator = CostEstimator()
         self.fallback_manager = FallbackManager()
+        self.strategy = (strategy or self._load_strategy(config_path)).lower()
+
+    def _load_strategy(self, config_path: str) -> str:
+        """Loads routing strategy from YAML configuration ('balanced', 'fidelity_first', 'aggressive')."""
+        import os
+        import yaml
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                    return data.get("routing", {}).get("strategy", "balanced")
+            except Exception:
+                pass
+        return "balanced"
 
     def evaluate(self, prompt: str, requested_model: str, provider: str = "openai") -> OptimizationDecision:
         trace: List[str] = []
@@ -85,19 +100,32 @@ class DecisionEngine:
 
         trace.append("Cache Evaluation: MISS (Proceeding to Routing Engine)")
 
-        # 3. Model Capability & Routing Evaluation
-        candidate_meta = self.registry.find_cheapest_capable_model(
-            requested_model=requested_model,
-            task_type=analysis.task_type,
-            complexity=analysis.complexity
-        )
-        if candidate_meta:
-            candidate_name = candidate_meta.name
-        else:
-            # BUG-12 fix: unknown model — registry has no metadata for it.
-            # Keep the requested model; routing will be handled by YAML router rules in CostOptRouter.
+        # 3. Model Capability & Routing Evaluation based on configured Strategy
+        if self.strategy == "fidelity_first" and (analysis.complexity in ("medium", "high") or analysis.task_type in ("reasoning", "general_chat", "analysis", "creative")):
+            candidate_meta = None
             candidate_name = requested_model
-            trace.append(f"Routing Evaluation: Model '{requested_model}' not in internal registry. Routing deferred to YAML rules.")
+            trace.append(f"Routing Strategy: 'fidelity_first' preserved requested flagship model '{requested_model}' for {analysis.complexity} complexity {analysis.task_type} task.")
+        elif self.strategy == "aggressive":
+            candidate_meta = self.registry.find_cheapest_capable_model(
+                requested_model=requested_model,
+                task_type=analysis.task_type,
+                complexity="low"
+            )
+            candidate_name = candidate_meta.name if candidate_meta else requested_model
+        else:
+            # Default "balanced" strategy: match model to task capability
+            candidate_meta = self.registry.find_cheapest_capable_model(
+                requested_model=requested_model,
+                task_type=analysis.task_type,
+                complexity=analysis.complexity
+            )
+            if candidate_meta:
+                candidate_name = candidate_meta.name
+            else:
+                # BUG-12 fix: unknown model — registry has no metadata for it.
+                # Keep the requested model; routing will be handled by YAML router rules in CostOptRouter.
+                candidate_name = requested_model
+                trace.append(f"Routing Evaluation: Model '{requested_model}' not in internal registry. Routing deferred to YAML rules.")
 
         # 4. Fallback & Quality Guardrails Evaluation
         fallbacks = req_model_meta.fallbacks if req_model_meta else []

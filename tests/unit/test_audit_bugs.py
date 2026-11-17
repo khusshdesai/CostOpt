@@ -19,8 +19,8 @@ def test_bug1_and_bug4_parameter_hashing_and_multimodel_cache():
         cache.set("hello world", "gpt-4o", {"choices": [{"message": {"content": "temp 0"}}]}, params_hash=hash_temp0)
         cache.set("hello world", "gpt-4o", {"choices": [{"message": {"content": "temp 1"}}]}, params_hash=hash_temp1)
 
-        hit_temp0 = cache.get("hello world", "gpt-4o", params_hash=hash_temp0)
-        hit_temp1 = cache.get("hello world", "gpt-4o", params_hash=hash_temp1)
+        hit_temp0, _ = cache.get("hello world", "gpt-4o", params_hash=hash_temp0)
+        hit_temp1, _ = cache.get("hello world", "gpt-4o", params_hash=hash_temp1)
 
         assert hit_temp0["choices"][0]["message"]["content"] == "temp 0"
         assert hit_temp1["choices"][0]["message"]["content"] == "temp 1"
@@ -28,8 +28,8 @@ def test_bug1_and_bug4_parameter_hashing_and_multimodel_cache():
         # Bug 4 test: Caching for model B does not evict model A
         cache.set("hello world", "gpt-4o-mini", {"choices": [{"message": {"content": "mini"}}]}, params_hash=hash_temp0)
         
-        hit_gpt4o = cache.get("hello world", "gpt-4o", params_hash=hash_temp0)
-        hit_mini = cache.get("hello world", "gpt-4o-mini", params_hash=hash_temp0)
+        hit_gpt4o, _ = cache.get("hello world", "gpt-4o", params_hash=hash_temp0)
+        hit_mini, _ = cache.get("hello world", "gpt-4o-mini", params_hash=hash_temp0)
 
         assert hit_gpt4o is not None
         assert hit_mini is not None

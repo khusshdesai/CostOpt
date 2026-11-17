@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.16-blue" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/pypi-v0.2.17-blue" alt="PyPI Version"></a>
   <a href="https://pypi.org/project/costopt/"><img src="https://img.shields.io/badge/downloads-5K%2B-brightgreen" alt="Downloads"></a>
   <a href="https://open-vsx.org/extension/khusshdesai/costopt-vscode"><img src="https://img.shields.io/badge/Open%20VSX-5K%2B%20installs-purple" alt="Open VSX Installs"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=khusshdesai.costopt-vscode"><img src="https://img.shields.io/badge/VS%20Marketplace-v0.2.16-blue" alt="VS Marketplace"></a>
@@ -65,10 +65,13 @@ print(response.choices[0].message.content)
 
 | Feature | Description |
 |---|---|
-| 🗄️ **Multi-Tier Prompt Cache** | Tier 1 exact SHA-256 hash matching (<15ms, $0.00) + Tier 2 local TF-IDF cosine vector similarity matching. Includes parameter hashing (`temperature`, `tools`, `response_format`, `seed`). |
+| 🗄️ **Multi-Tier Prompt Cache** | Tier 1 exact SHA-256 hash matching (<15ms, $0.00) + Tier 2 local TF-IDF cosine vector similarity matching. Includes parameter hashing (`temperature`, `tools`, `response_format`, `seed`). **Enforces 100% exact cache safety** whenever function tools or structured JSON outputs are present. |
+| 🤖 **Agent-Aware Attribution** | Track spend, tokens, and circuit-breaking per agent node using thread-safe context scoping (`with costopt.scope(agent="Researcher")` or `@costopt.track(agent="Writer")`). Automatically filters out library frames (LangChain, CrewAI, AutoGen). |
+| ⚡ **Native Prefix Caching** | Automatically tracks provider prompt caching (OpenAI `prompt_tokens_details.cached_tokens`, Anthropic `cache_read_input_tokens`) and applies 50%–90% discounts directly into pricing telemetry. |
+| 🎯 **Routing Strategy Profiles** | Support for `fidelity_first` (preserves flagship models for complex reasoning & creative workflows; zero quality compromise), `balanced` (default), and `aggressive` (cost-optimized). |
 | 🧠 **Intelligent Decision Engine** | Classifies prompts into 7 task categories (`simple_classification`, `extraction`, `summarization`, `coding`, `reasoning`, `creative_generation`, `general_chat`) with confidence scoring. |
 | 🔀 **Policy-Aware Model Router** | Rule-based keyword and task-complexity routing — simple tasks auto-rerouted to efficient models (`gpt-4o` ➔ `gpt-4o-mini` / `deepseek-r1`). |
-| 🛡️ **Circuit Breaker** | Detects call velocity loops from the same file/line location and trips `CostOptCircuitBreakerError`. |
+| 🛡️ **Agent-Aware Circuit Breaker** | Detects call velocity loops keyed on `(agent, step)` or file/line location and trips `CostOptCircuitBreakerError` to prevent runaway agent bills. |
 | 🔄 **Outage Failover** | Auto-retries fallback models on 429/503 errors (`gpt-4o` ➔ `claude-3-5-sonnet` ➔ `llama3`). |
 | 📊 **Observability & FinOps Console** | Premium dark-mode dashboard (`#050505` canvas, fixed left sidebar, bento grid layout) for Overview, Spend, Optimizations, Requests, and Policies. |
 | 🔍 **Decision Intelligence Traces** | Step-by-step visual trace flow explaining every request analysis, cache evaluation, and routing decision. |
@@ -113,15 +116,23 @@ pip install costopt
 ### Step 2 — Wrap your LLM client
 ```python
 from openai import OpenAI
-from costopt import CostOpt
+from costopt import CostOpt, scope, track
 
 client = CostOpt(OpenAI())
 
+# Standard call (transparent cost routing & exact caching):
 response = client.chat.completions.create(
     model="gpt-4o",
     messages=[{"role": "user", "content": "Classify sentiment: This product is outstanding!"}]
 )
 print(response.choices[0].message.content)
+
+# Multi-Agent Attribution (LangGraph, CrewAI, AutoGen):
+with scope(agent="MarketResearcher", run_id="workflow-01"):
+    client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Analyze competitor landscape"}]
+    )
 ```
 
 ### Step 3 — Launch the Observability Dashboard
@@ -252,6 +263,7 @@ The config has **two jobs**:
 
 ```yaml
 routing:
+  strategy: "balanced"             # Strategy profile: "fidelity_first" | "balanced" | "aggressive"
   fallbacks:
     <your-primary-model>:
       - <fallback-model-1>
@@ -271,6 +283,12 @@ alerts:
   cooldown_minutes: 60
   slack_webhook_url: ""
 ```
+
+#### Routing Strategy Profiles
+You can select a strategy in `costopt.yaml` or directly in code via `CostOpt(client, strategy="fidelity_first")`:
+* **`fidelity_first`**: Prioritizes response quality and accuracy. Preserves requested flagship models (`gpt-4o`, `claude-3-5-sonnet`) for reasoning, coding, analysis, and creative tasks. Rerouting is only applied to trivial/simple tasks.
+* **`balanced`** *(Default)*: Automatically routes tasks to the most cost-effective model capable of handling the detected task complexity.
+* **`aggressive`**: Maximizes cost savings by routing to low-cost models wherever possible.
 
 > **Note**: All fields in `rules` are optional. A rule with no `original_model` matches any model. A rule with no `keywords` matches any prompt within the length limit.
 

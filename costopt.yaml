@@ -13,6 +13,12 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 routing:
+  # ─── Routing Strategy Profile ───────────────────────────────────────────────
+  # Options:
+  #   balanced       (default) - Routes lightweight tasks to mini models while keeping complex tasks on flagship models.
+  #   fidelity_first - High-accuracy mode for simulations/agents: preserves flagship models for reasoning and personas.
+  #   aggressive     - Maximum cost-cutting: aggressively downgrades requests to smallest capable models.
+  strategy: "balanced"
 
   # ─── Fallback Chains ────────────────────────────────────────────────────────
   # Format:

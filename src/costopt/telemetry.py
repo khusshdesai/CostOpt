@@ -47,6 +47,7 @@ class SQLiteTelemetryLogger:
                         model_used TEXT NOT NULL,
                         input_tokens INTEGER NOT NULL,
                         output_tokens INTEGER NOT NULL,
+                        cached_tokens INTEGER DEFAULT 0,
                         latency_ms INTEGER NOT NULL,
                         status_code INTEGER NOT NULL,
                         success BOOLEAN NOT NULL,
@@ -62,6 +63,9 @@ class SQLiteTelemetryLogger:
                         retry_count INTEGER NOT NULL,
                         file_path TEXT DEFAULT '',
                         line_number INTEGER DEFAULT 0,
+                        agent TEXT DEFAULT '',
+                        run_id TEXT DEFAULT '',
+                        step TEXT DEFAULT '',
                         task_type TEXT DEFAULT 'general_chat',
                         complexity TEXT DEFAULT 'medium',
                         confidence REAL DEFAULT 1.0,
@@ -74,12 +78,16 @@ class SQLiteTelemetryLogger:
                 for col_name, col_type in [
                     ("file_path", "TEXT DEFAULT ''"),
                     ("line_number", "INTEGER DEFAULT 0"),
+                    ("agent", "TEXT DEFAULT ''"),
+                    ("run_id", "TEXT DEFAULT ''"),
+                    ("step", "TEXT DEFAULT ''"),
                     ("task_type", "TEXT DEFAULT 'general_chat'"),
                     ("complexity", "TEXT DEFAULT 'medium'"),
                     ("confidence", "REAL DEFAULT 1.0"),
                     ("decision_reason", "TEXT DEFAULT ''"),
                     ("decision_trace", "TEXT DEFAULT ''"),
-                    ("is_synthetic", "INTEGER DEFAULT 0")
+                    ("is_synthetic", "INTEGER DEFAULT 0"),
+                    ("cached_tokens", "INTEGER DEFAULT 0")
                 ]:
                     try:
                         cursor.execute(f"ALTER TABLE telemetry ADD COLUMN {col_name} {col_type}")
@@ -143,8 +151,12 @@ class SQLiteTelemetryLogger:
         """Performs bulk insert into the telemetry database."""
         for r in batch:
             r.setdefault("error_type", None)
+            r.setdefault("cached_tokens", 0)
             r.setdefault("file_path", "")
             r.setdefault("line_number", 0)
+            r.setdefault("agent", "")
+            r.setdefault("run_id", "")
+            r.setdefault("step", "")
             r.setdefault("task_type", "general_chat")
             r.setdefault("complexity", "medium")
             r.setdefault("confidence", 1.0)
@@ -162,17 +174,17 @@ class SQLiteTelemetryLogger:
                 cursor.executemany("""
                     INSERT OR REPLACE INTO telemetry (
                         timestamp, request_id, provider, model_requested, model_used,
-                        input_tokens, output_tokens, latency_ms, status_code, success,
+                        input_tokens, output_tokens, cached_tokens, latency_ms, status_code, success,
                         error_type, cache_hit, cost_original, cost_actual, savings,
                         prompt_hash, environment, application, region, retry_count,
-                        file_path, line_number, task_type, complexity, confidence,
+                        file_path, line_number, agent, run_id, step, task_type, complexity, confidence,
                         decision_reason, decision_trace, is_synthetic
                     ) VALUES (
                         :timestamp, :request_id, :provider, :model_requested, :model_used,
-                        :input_tokens, :output_tokens, :latency_ms, :status_code, :success,
+                        :input_tokens, :output_tokens, :cached_tokens, :latency_ms, :status_code, :success,
                         :error_type, :cache_hit, :cost_original, :cost_actual, :savings,
                         :prompt_hash, :environment, :application, :region, :retry_count,
-                        :file_path, :line_number, :task_type, :complexity, :confidence,
+                        :file_path, :line_number, :agent, :run_id, :step, :task_type, :complexity, :confidence,
                         :decision_reason, :decision_trace, :is_synthetic
                     )
                 """, batch)

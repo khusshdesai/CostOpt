@@ -88,6 +88,7 @@ build/
 
 # Local test and development scripts
 scripts/
+benchmarks/
 
 # Tests (local only — not shipped with the package)
 tests/

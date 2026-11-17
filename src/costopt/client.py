@@ -14,6 +14,7 @@ from costopt.router import CostOptRouter
 from costopt.pricing import calculate_cost
 from costopt.telemetry import SQLiteTelemetryLogger
 from costopt.circuit_breaker import CircuitBreaker
+from costopt.context import get_current_scope
 
 logger = logging.getLogger("costopt.client")
 
@@ -25,7 +26,7 @@ def _compute_prompt_hash(text: str) -> str:
 def _compute_params_hash(kwargs: dict) -> str:
     """Computes a deterministic hash of request parameters (temperature, tools, response_format, seed, max_tokens)."""
     relevant = {}
-    for key in ("temperature", "tools", "tool_choice", "response_format", "seed", "max_tokens", "top_p"):
+    for key in ("temperature", "tools", "tool_choice", "response_format", "seed", "max_tokens", "max_completion_tokens", "top_p"):
         if key in kwargs and kwargs[key] is not None:
             relevant[key] = kwargs[key]
     if not relevant:
@@ -37,13 +38,34 @@ def _compute_params_hash(kwargs: dict) -> str:
         return ""
 
 def _get_caller_location() -> tuple:
-    """Inspects stack frames to pinpoint user code file path and line number."""
+    """
+    Inspects stack frames to pinpoint user code file path and line number.
+    Filters out internal CostOpt frames, standard library runtime files,
+    site-packages, and popular agent framework library internals (LangChain, CrewAI, AutoGen).
+    """
     try:
         stack = inspect.stack()
+        # Directories/framework substrings to skip
+        skip_patterns = (
+            "costopt",
+            "site-packages",
+            "dist-packages",
+            "importlib",
+            "<frozen",
+            "threading.py",
+            "asyncio",
+            "langchain",
+            "langgraph",
+            "crewai",
+            "autogen",
+            "openai",
+            "anthropic",
+            "google",
+        )
         for frame_info in stack[2:]:
-            filename = frame_info.filename
-            if "costopt" not in filename and "site-packages" not in filename and "importlib" not in filename:
-                return os.path.abspath(filename), frame_info.lineno
+            filename = frame_info.filename.replace("\\", "/").lower()
+            if not any(pat in filename for pat in skip_patterns):
+                return os.path.abspath(frame_info.filename), frame_info.lineno
     except Exception:
         pass
     return "", 0
@@ -84,9 +106,15 @@ class CostOptCompletions:
         prompt_hash = _compute_prompt_hash(prompt_text)
         params_hash = _compute_params_hash(kwargs)
 
+        # Extract current agent / run scope from contextvars
+        current_scope = get_current_scope()
+        scope_agent = kwargs.pop("agent", current_scope.get("agent", ""))
+        scope_run_id = kwargs.pop("run_id", current_scope.get("run_id", ""))
+        scope_step = kwargs.pop("step", current_scope.get("step", ""))
+
         # 0. Circuit Breaker Check to prevent silent runaway billing loops
         location_key = f"{file_path}:{line_number}" if file_path else "<unknown_location>"
-        self._wrapper.circuit_breaker.check_and_record(location_key)
+        self._wrapper.circuit_breaker.check_and_record(location_key, agent=scope_agent, step=scope_step)
 
         # Evaluate decision via DecisionEngine
         decision = self._wrapper.decision_engine.evaluate(prompt_text, model_requested, provider=self._wrapper.provider)
@@ -96,8 +124,13 @@ class CostOptCompletions:
         if kwargs.get("stream"):
             return self._handle_stream(start_time, prompt_text, prompt_hash, params_hash, model_requested, model_used, environment, application, region, file_path, line_number, args, kwargs)
 
+        # Enforce 100% exact cache safety:
+        # If the request uses tools, tool_choice, or structured response_format,
+        # fuzzy caching is completely locked out to prevent subtle agent bugs/hallucinations.
+        has_tools_or_structured = bool(kwargs.get("tools") or kwargs.get("tool_choice") or kwargs.get("response_format"))
+
         # 2. Check Cache using model_used and params_hash (Fix Bug 1 & Bug 2)
-        cached_data, _ = self._wrapper.cache.get(prompt_text, model_used, params_hash)
+        cached_data, _ = self._wrapper.cache.get(prompt_text, model_used, params_hash, force_exact=has_tools_or_structured)
         if cached_data:
             latency_ms = int((time.time() - start_time) * 1000)
             
@@ -135,6 +168,9 @@ class CostOptCompletions:
                     "retry_count": 0,
                     "file_path": file_path,
                     "line_number": line_number,
+                    "agent": scope_agent,
+                    "run_id": scope_run_id,
+                    "step": scope_step,
                     "task_type": decision.task_type,
                     "complexity": decision.complexity,
                     "confidence": decision.confidence,
@@ -195,19 +231,30 @@ class CostOptCompletions:
         latency_ms = int((time.time() - start_time) * 1000)
 
         # 5. Extract values and compute costs
+        cached_tokens = 0
         if success and response:
             input_tokens = response.usage.prompt_tokens if response.usage else 0
             output_tokens = response.usage.completion_tokens if response.usage else 0
             
+            # Extract provider native cached prompt tokens (OpenAI prompt caching)
+            if response.usage:
+                prompt_details = getattr(response.usage, "prompt_tokens_details", None)
+                if prompt_details:
+                    cached_tokens = int(getattr(prompt_details, "cached_tokens", 0) or 0)
+                elif isinstance(response.usage, dict):
+                    details = response.usage.get("prompt_tokens_details", {})
+                    if isinstance(details, dict):
+                        cached_tokens = int(details.get("cached_tokens", 0) or 0)
+
             # Save successful response to cache using model_used and params_hash (Fix Bug 1 & Bug 2)
             try:
                 self._wrapper.cache.set(prompt_text, model_used, response.model_dump(), params_hash=params_hash)
             except Exception as ce:
                 logger.error(f"Failed to cache response: {ce}")
             
-            # Cost calculations using provider_used (Fix Bug 3)
-            cost_original = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False)
-            cost_actual = calculate_cost(provider_used, model_used, input_tokens, output_tokens, cache_hit=False)
+            # Cost calculations using provider_used with prompt caching discount
+            cost_original = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False, cached_tokens=cached_tokens)
+            cost_actual = calculate_cost(provider_used, model_used, input_tokens, output_tokens, cache_hit=False, cached_tokens=cached_tokens)
             savings = max(0.0, round(cost_original - cost_actual, 6))
             req_id = response.id
         else:
@@ -227,6 +274,7 @@ class CostOptCompletions:
             "model_used": model_used,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
+            "cached_tokens": cached_tokens,
             "latency_ms": latency_ms,
             "status_code": status_code,
             "success": success,
@@ -242,6 +290,9 @@ class CostOptCompletions:
             "retry_count": retry_count,
             "file_path": file_path,
             "line_number": line_number,
+            "agent": scope_agent,
+            "run_id": scope_run_id,
+            "step": scope_step,
             "task_type": decision.task_type,
             "complexity": decision.complexity,
             "confidence": decision.confidence,
@@ -332,9 +383,13 @@ class CostOptCompletions:
 
         latency_ms = int((time.time() - start_time) * 1000)
 
+        cached_tokens = 0
         if exact_usage:
             input_tokens = getattr(exact_usage, "prompt_tokens", 0)
             output_tokens = getattr(exact_usage, "completion_tokens", 0)
+            prompt_details = getattr(exact_usage, "prompt_tokens_details", None)
+            if prompt_details:
+                cached_tokens = int(getattr(prompt_details, "cached_tokens", 0) or 0)
         else:
             try:
                 import tiktoken
@@ -344,8 +399,8 @@ class CostOptCompletions:
                 input_tokens = len(prompt_text.split())
             output_tokens = max(0, len(accumulated_chunks) - 1)
 
-        cost_orig = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False)
-        cost_act = calculate_cost(self._wrapper.provider, model_used, input_tokens, output_tokens, cache_hit=False) if not stream_failed else 0.0
+        cost_orig = calculate_cost(self._wrapper.provider, model_requested, input_tokens, output_tokens, cache_hit=False, cached_tokens=cached_tokens)
+        cost_act = calculate_cost(self._wrapper.provider, model_used, input_tokens, output_tokens, cache_hit=False, cached_tokens=cached_tokens) if not stream_failed else 0.0
         savings = max(0.0, round(cost_orig - cost_act, 6)) if not stream_failed else 0.0
 
         if not stream_failed:
@@ -382,7 +437,10 @@ class CostOptCompletions:
             "region": region,
             "retry_count": 0,
             "file_path": file_path,
-            "line_number": line_number
+            "line_number": line_number,
+            "agent": kwargs.get("agent", get_current_scope().get("agent", "")),
+            "run_id": kwargs.get("run_id", get_current_scope().get("run_id", "")),
+            "step": kwargs.get("step", get_current_scope().get("step", ""))
         })
 
         if stream_failed and stream_error:
@@ -406,8 +464,13 @@ class CostOptAnthropicMessages:
     def create(self, *args, **kwargs) -> Any:
         start_time = time.time()
         file_path, line_number = _get_caller_location()
+        current_scope = get_current_scope()
+        scope_agent = kwargs.pop("agent", current_scope.get("agent", ""))
+        scope_run_id = kwargs.pop("run_id", current_scope.get("run_id", ""))
+        scope_step = kwargs.pop("step", current_scope.get("step", ""))
+
         if file_path and line_number:
-            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}")
+            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}", agent=scope_agent, step=scope_step)
 
         model_requested = kwargs.get("model", "claude-3-5-sonnet")
         messages = kwargs.get("messages", [])
@@ -419,8 +482,11 @@ class CostOptAnthropicMessages:
             prompt_text += f"{role}: {content}\n"
         prompt_hash = _compute_prompt_hash(prompt_text)
 
+        # Enforce exact match safety if Anthropic call specifies tools
+        has_tools = bool(kwargs.get("tools") or kwargs.get("tool_choice"))
+
         # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
-        cached_entry, _ = self._wrapper.cache.get(prompt_text, model_requested)
+        cached_entry, _ = self._wrapper.cache.get(prompt_text, model_requested, force_exact=has_tools)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
@@ -448,6 +514,9 @@ class CostOptAnthropicMessages:
                 "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
+                "agent": scope_agent,
+                "run_id": scope_run_id,
+                "step": scope_step,
                 "task_type": "general_chat",
                 "complexity": "medium",
                 "confidence": 1.0,
@@ -508,6 +577,7 @@ class CostOptAnthropicMessages:
             usage = getattr(response, "usage", None)
             raw_in = getattr(usage, "input_tokens", None) if usage else None
             raw_out = getattr(usage, "output_tokens", None) if usage else None
+            cached_tokens = int(getattr(usage, "cache_read_input_tokens", 0) or 0) if usage else 0
             try:
                 in_tokens = int(raw_in) if raw_in is not None else max(1, len(prompt_text) // 4)
             except (TypeError, ValueError):
@@ -517,8 +587,8 @@ class CostOptAnthropicMessages:
             except (TypeError, ValueError):
                 out_tokens = 30
 
-            cost_orig = calculate_cost("anthropic", model_requested, in_tokens, out_tokens)
-            cost_act = calculate_cost("anthropic", model_used, in_tokens, out_tokens)
+            cost_orig = calculate_cost("anthropic", model_requested, in_tokens, out_tokens, cache_hit=False, cached_tokens=cached_tokens)
+            cost_act = calculate_cost("anthropic", model_used, in_tokens, out_tokens, cache_hit=False, cached_tokens=cached_tokens)
             savings = max(0.0, round(cost_orig - cost_act, 6))
 
             # BUG-1 fix: use prompt_text as key and store as dict
@@ -531,6 +601,7 @@ class CostOptAnthropicMessages:
                 "model_used": model_used,
                 "input_tokens": in_tokens,
                 "output_tokens": out_tokens,
+                "cached_tokens": cached_tokens,
                 "latency_ms": latency_ms,
                 "status_code": 200,
                 "success": True,
@@ -542,9 +613,12 @@ class CostOptAnthropicMessages:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": retry_count,
+                "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
+                "agent": scope_agent,
+                "run_id": scope_run_id,
+                "step": scope_step,
                 "task_type": "general_chat",
                 "complexity": "medium",
                 "confidence": 1.0,
@@ -571,7 +645,7 @@ class CostOptAnthropicMessages:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": retry_count,
+                "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
                 "decision_reason": f"Anthropic Call Failed: {str(last_exc)}",
@@ -589,14 +663,21 @@ class CostOptGeminiModel:
     def generate_content(self, contents, *args, **kwargs) -> Any:
         start_time = time.time()
         file_path, line_number = _get_caller_location()
+        current_scope = get_current_scope()
+        scope_agent = kwargs.pop("agent", current_scope.get("agent", ""))
+        scope_run_id = kwargs.pop("run_id", current_scope.get("run_id", ""))
+        scope_step = kwargs.pop("step", current_scope.get("step", ""))
+
         if file_path and line_number:
-            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}")
+            self._wrapper.circuit_breaker.check_and_record(f"{file_path}:{line_number}", agent=scope_agent, step=scope_step)
 
         prompt_text = str(contents)
         prompt_hash = _compute_prompt_hash(prompt_text)
 
+        has_tools = bool(kwargs.get("tools") or kwargs.get("tool_config"))
+
         # Check Cache (BUG-1 fix: use prompt_text not prompt_hash as the cache lookup key)
-        cached_entry, _ = self._wrapper.cache.get(prompt_text, self.model_name)
+        cached_entry, _ = self._wrapper.cache.get(prompt_text, self.model_name, force_exact=has_tools)
         if cached_entry:
             latency_ms = int((time.time() - start_time) * 1000)
             in_tokens = max(1, len(prompt_text) // 4)
@@ -624,6 +705,9 @@ class CostOptGeminiModel:
                 "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
+                "agent": scope_agent,
+                "run_id": scope_run_id,
+                "step": scope_step,
                 "decision_reason": "Served from Gemini local prompt cache",
             })
 
@@ -699,9 +783,12 @@ class CostOptGeminiModel:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": retry_count,
+                "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
+                "agent": scope_agent,
+                "run_id": scope_run_id,
+                "step": scope_step,
                 "decision_reason": "Direct Google Gemini API Execution",
             })
             return response
@@ -725,7 +812,7 @@ class CostOptGeminiModel:
                 "environment": self._wrapper.environment,
                 "application": self._wrapper.application,
                 "region": self._wrapper.region,
-                "retry_count": retry_count,
+                "retry_count": 0,
                 "file_path": file_path,
                 "line_number": line_number,
                 "decision_reason": f"Gemini Call Failed: {str(last_exc)}",
@@ -746,7 +833,8 @@ class CostOpt:
         environment: str = "production",
         application: str = "default-app",
         region: str = "us-east-1",
-        circuit_breaker_max_calls: int = 15
+        circuit_breaker_max_calls: int = 15,
+        strategy: Optional[str] = None
     ):
         """
         LLM CostOpt Interceptor client wrapper. Auto-detects OpenAI, Anthropic, and Google Gemini clients.
@@ -764,7 +852,7 @@ class CostOpt:
         self.cache = SQLiteCache(cache_db_path, similarity_threshold)
         self.telemetry = SQLiteTelemetryLogger(telemetry_db_path, alert_config=alert_cfg)
         self.circuit_breaker = CircuitBreaker(max_calls=circuit_breaker_max_calls)
-        self.decision_engine = DecisionEngine(config_path, cache_db_path, similarity_threshold)
+        self.decision_engine = DecisionEngine(config_path, cache_db_path, similarity_threshold, strategy=strategy)
 
         # Auto-detect Client Provider Type
         prov_lower = provider.lower()

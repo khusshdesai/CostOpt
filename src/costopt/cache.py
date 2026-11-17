@@ -87,9 +87,21 @@ class SQLiteCache:
         return dot_product / (mag1 * mag2)
 
 
-    def get(self, prompt_text: str, model: str, params_hash: str = "") -> Tuple[Optional[Dict[str, Any]], float]:
+    def get(self, prompt_text: str, model: str, params_hash: str = "", force_exact: bool = False) -> Tuple[Optional[Dict[str, Any]], float]:
         """
         Queries local cache for an existing response.
+
+        Parameters
+        ----------
+        prompt_text : str
+            The prompt or messages content.
+        model : str
+            The model identifier.
+        params_hash : str
+            Deterministic hash of execution parameters (tools, temperature, etc.).
+        force_exact : bool
+            If True, skips any fuzzy/near-duplicate matching and strictly enforces
+            exact hash matching (e.g. for tool calling or structured outputs).
 
         Returns
         -------
@@ -126,14 +138,8 @@ class SQLiteCache:
                         logger.debug("Cache expired (exact match found but expired)")
                         return None, 0.0
 
-                # 2. Near-Duplicate Matching (Fuzzy Caching) if similarity threshold < 1.0
-                # Bounded to the 50 most recently inserted entries (ORDER BY rowid DESC LIMIT 50)
-                # so that fuzzy lookup latency stays constant regardless of database size.
-                # rowid is SQLite's strictly monotonic auto-increment key — safer than
-                # created_at (epoch seconds) which ties when many rows are inserted within
-                # the same second. Near-duplicate prompts are almost always recent; exact
-                # SHA-256 already handles matches further back in history in O(1).
-                if self.similarity_threshold < 1.0:
+                # 2. Near-Duplicate Matching (Fuzzy Caching) if similarity threshold < 1.0 and not force_exact
+                if not force_exact and self.similarity_threshold < 1.0:
                     cursor.execute(
                         "SELECT prompt_hash, prompt_text, response_json, expires_at "
                         "FROM prompt_cache WHERE model = ? ORDER BY rowid DESC LIMIT 50",

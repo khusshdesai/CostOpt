@@ -18,20 +18,25 @@ class CircuitBreaker:
         self._lock = threading.Lock()
         self._call_count = 0  # BUG-8: used for periodic stale-key eviction
 
-    def check_and_record(self, location_key: str) -> None:
-        """Checks if calls from location_key exceed rate threshold within time window.
+    def check_and_record(self, location_key: str, agent: Optional[str] = None, step: Optional[str] = None) -> None:
+        """Checks if calls from (agent, step) or location_key exceed rate threshold within time window.
         Trips and raises CostOptCircuitBreakerError if limit exceeded."""
-        if not location_key:
+        # Prioritize agent and step if active in context scope
+        if agent:
+            effective_key = f"agent:{agent}" + (f":{step}" if step else "")
+        elif location_key:
+            effective_key = location_key
+        else:
             return
 
         now = time.monotonic()
 
         with self._lock:
-            timestamps = self._history.get(location_key, [])
+            timestamps = self._history.get(effective_key, [])
             cutoff = now - self.time_window_seconds
             recent_timestamps = [t for t in timestamps if t >= cutoff]
             recent_timestamps.append(now)
-            self._history[location_key] = recent_timestamps
+            self._history[effective_key] = recent_timestamps
 
             # BUG-8 fix: periodic eviction of stale keys to prevent unbounded dict growth
             self._call_count += 1
@@ -43,7 +48,7 @@ class CircuitBreaker:
 
             if len(recent_timestamps) > self.max_calls:
                 msg = (
-                    f"CostOpt Circuit Breaker TRIPPED for [{location_key}]: "
+                    f"CostOpt Circuit Breaker TRIPPED for [{effective_key}]: "
                     f"Exceeded {self.max_calls} calls in {self.time_window_seconds}s window ({len(recent_timestamps)} calls recorded). "
                     f"Intercepted to prevent runaway LLM billing leak."
                 )

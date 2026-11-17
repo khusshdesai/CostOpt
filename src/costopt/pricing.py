@@ -96,11 +96,13 @@ def calculate_cost(
     input_tokens: int,
     output_tokens: int,
     cache_hit: bool = False,
-    pricing_dir: Optional[str] = None
+    pricing_dir: Optional[str] = None,
+    cached_tokens: int = 0
 ) -> float:
     """
     Calculate estimated cost for a given request.
     If exact prices are unknown, default rate is set to 0.0.
+    Supports provider native prompt caching discounts via cached_tokens.
     """
     pricing = get_pricing(provider, model, pricing_dir)
     if not pricing:
@@ -112,9 +114,13 @@ def calculate_cost(
         return 0.0
 
     input_rate = pricing["input_cost_per_1m"]
+    cached_rate = pricing.get("cached_input_cost_per_1m", input_rate)
     output_rate = pricing["output_cost_per_1m"]
 
-    input_cost = (input_tokens / 1_000_000.0) * input_rate
+    safe_cached = max(0, min(int(cached_tokens or 0), input_tokens))
+    uncached_tokens = max(0, input_tokens - safe_cached)
+
+    input_cost = ((uncached_tokens / 1_000_000.0) * input_rate) + ((safe_cached / 1_000_000.0) * cached_rate)
     output_cost = (output_tokens / 1_000_000.0) * output_rate
 
     return round(input_cost + output_cost, 6)

@@ -64,14 +64,17 @@ def test_cache_engine(temp_db):
     mock_response = {"id": "chatcmpl-123", "choices": [{"message": {"content": "8 legs"}}], "usage": {"prompt_tokens": 10, "completion_tokens": 5}}
 
     # Verify miss initially
-    assert cache.get(prompt, model) is None
+    miss_entry, score = cache.get(prompt, model)
+    assert miss_entry is None
+    assert score == 0.0
 
     # Write to cache
     cache.set(prompt, model, mock_response)
 
     # Verify hit
-    hit = cache.get(prompt, model)
+    hit, score = cache.get(prompt, model)
     assert hit is not None
+    assert score == 1.0
     assert hit["choices"][0]["message"]["content"] == "8 legs"
 
 # 3. Test Fuzzy Cache matching
@@ -87,8 +90,9 @@ def test_fuzzy_cache_matching(temp_db):
     cache.set(prompt_original, model, mock_response)
 
     # Exact match on variant should miss if threshold is 1.0, but hit on 0.90
-    hit = cache.get(prompt_variant, model)
+    hit, score = cache.get(prompt_variant, model)
     assert hit is not None
+    assert score >= 0.90
     assert hit["choices"][0]["message"]["content"] == "Hola"
 
 # 4. Test Model Routing rules
@@ -181,7 +185,14 @@ def test_semantic_vector_cosine_cache(temp_db):
     mock_resp = {"id": "chatcmpl-vector", "choices": [{"message": {"content": "Paris"}}]}
 
     cache.set(prompt1, "gpt-4o", mock_resp)
-    match = cache.get(prompt2, "gpt-4o")
+    match, score = cache.get(prompt2, "gpt-4o")
     assert match is not None
+    assert score >= 0.70
     assert match["choices"][0]["message"]["content"] == "Paris"
+
+    # Test force_exact lock (e.g. for tools or structured outputs)
+    exact_only_match, exact_score = cache.get(prompt2, "gpt-4o", force_exact=True)
+    assert exact_only_match is None
+    assert exact_score == 0.0
+
 
